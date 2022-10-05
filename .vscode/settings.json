@@ -1,0 +1,9 @@
+{
+    "cmake.cmakePath": "D:/devtools/cmake/bin/cmake.exe",
+    "cmake.sourceDirectory": "${workspaceFolder}/.",
+    "cmake.generator": "Ninja",
+    "files.associations": {
+        "vector": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "Enabled"
+}
