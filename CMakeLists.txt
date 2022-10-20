@@ -2,8 +2,11 @@
 
 project ("Hexer")
 
-set(OPENMESH_INCLUDE "D:/openmesh/OpenMesh 9.1/include")
-set(OPENMESH_LIB "D:/openmesh/OpenMesh 9.1/lib")
+set(OPENMESH_PATH "A:/MeshGeneration/openmesh")
+set(OPENMESH_INCLUDE ${OPENMESH_PATH}/include)
+set(OPENMESH_LIB ${OPENMESH_PATH}/lib)
+
+message(${OPENMESH_INCLUDE})
 
 add_definitions(-D_USE_MATH_DEFINES)
 

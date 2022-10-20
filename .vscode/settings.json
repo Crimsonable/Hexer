@@ -1,5 +1,5 @@
 {
-    "cmake.cmakePath": "D:/devtools/cmake/bin/cmake.exe",
+    "cmake.cmakePath": "A:/buildTools/cmake/bin/cmake.exe",
     "cmake.sourceDirectory": "${workspaceFolder}/.",
     "cmake.generator": "Ninja",
     "files.associations": {
