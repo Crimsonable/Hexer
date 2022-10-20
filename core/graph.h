@@ -1,10 +1,11 @@
-#include <vector>
-#include <unordered_map>
 #include "base.h"
+#include <unordered_map>
+#include <vector>
 
 namespace Hexer {
 struct GraphEdge;
 class GraphVertex;
+using Edge_list = std::vector<GraphEdge *>;
 
 class GlobalID {
 public:
@@ -34,36 +35,32 @@ class GraphVertex {
 public:
   GraphVertex(ID _id);
 
-  void addInput(GraphSlot *input);
-  void addOutput(GraphSlot *output);
-  GraphSlot *getInput(int idx);
-  GraphSlot *getOutput(int idx);
-  std::vector<GraphSlot *> &getInputs();
-  std::vector<GraphSlot *> &getOutputs();
-
-  std::vector<ID> retriveInward();
-  std::vector<ID> retriveOutward();
+  void addInput(GraphEdge *edge);
+  void addOutput(GraphEdge *edge);
+  ID getInput(int idx);
+  ID getOutput(int idx);
+  Edge_list &getInputs();
+  Edge_list &getOutputs();
 
   ID getID() const;
-  GraphEdge *&firstInEdge();
-  GraphEdge *&firstOutEdge();
 
 protected:
-  std::vector<GraphSlot *> inputs;
-  std::vector<GraphSlot *> outputs;
+  // std::vector<GraphSlot *> inputs;
+  // std::vector<GraphSlot *> outputs;
 
-  GraphEdge *firstIn = nullptr;
-  GraphEdge *firstOut = nullptr;
+  Edge_list inwards;
+  Edge_list outwards;
+
+  // GraphEdge *firstIn = nullptr;
+  // GraphEdge *firstOut = nullptr;
   ID id;
 };
 
 struct GraphEdge {
   ID tail_vertex;
   ID head_vertex;
-  GraphEdge *head_link = nullptr;
-  GraphEdge *tail_link = nullptr;
-
-  GraphSlot *startSlot = nullptr, *endSlot = nullptr;
+  ID data_id;
+  ID id;
 };
 
 class Graph {
@@ -72,12 +69,11 @@ public:
 
   void insertVertex(GraphVertex *node);
 
-  void connetVertex(GraphVertex *head, GraphSlot *start_slot, GraphVertex *tail,
-                    GraphSlot *end_slot);
+  void connetVertex(GraphVertex *head, GraphVertex *tail, ID data_id);
 
 private:
   std::unordered_map<ID, GraphVertex *> nodes;
-  std::unordered_map<ID, GraphSlot *> slots;
+  std::unordered_map<ID, GraphEdge *> edges;
 
   uint nodes_count, edge_count;
 };
