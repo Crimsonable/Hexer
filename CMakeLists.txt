@@ -2,11 +2,13 @@
 
 project ("Hexer")
 
+set(OPENMESH_EXPBLAS_PATH )
+
+set(OPENMESH_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
+
 set(OPENMESH_PATH "A:/MeshGeneration/openmesh")
 set(OPENMESH_INCLUDE ${OPENMESH_PATH}/include)
 set(OPENMESH_LIB ${OPENMESH_PATH}/lib)
-
-message(${OPENMESH_INCLUDE})
 
 add_definitions(-D_USE_MATH_DEFINES)
 
@@ -14,6 +16,7 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}
 	${OPENMESH_INCLUDE}
 	D:/codes/expblas
+
 )
 link_directories(
 	${OPENMESH_LIB}
@@ -33,6 +36,8 @@ target_link_libraries(
 	Hexer
 	OpenMeshTools.lib
     OpenMeshCore.lib
+	OPENMESH_EXPBLAS_PATH
+	OPENMESH_SPDLOG_PATH
 )
 #add_subdirectory("core")
 #add_subdirectory ("Hexer")

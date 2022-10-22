@@ -35,32 +35,34 @@ class GraphVertex {
 public:
   GraphVertex(ID _id);
 
+  Edge_list operator()(Edge_list &&inputs);
+
   void addInput(GraphEdge *edge);
   void addOutput(GraphEdge *edge);
+
   ID getInput(int idx);
   ID getOutput(int idx);
+  ID getID() const;
+
   Edge_list &getInputs();
   Edge_list &getOutputs();
 
-  ID getID() const;
+private:
+  virtual Edge_list eval() = 0;
 
 protected:
-  // std::vector<GraphSlot *> inputs;
-  // std::vector<GraphSlot *> outputs;
-
   Edge_list inwards;
   Edge_list outwards;
-
-  // GraphEdge *firstIn = nullptr;
-  // GraphEdge *firstOut = nullptr;
   ID id;
 };
 
 struct GraphEdge {
+  GraphEdge(ID id) : id_(id) {}
+
   ID tail_vertex;
   ID head_vertex;
   ID data_id;
-  ID id;
+  ID id_;
 };
 
 class Graph {
@@ -69,7 +71,7 @@ public:
 
   void insertVertex(GraphVertex *node);
 
-  void connetVertex(GraphVertex *head, GraphVertex *tail, ID data_id);
+  GraphEdge *connetVertex(GraphVertex *head, GraphVertex *tail, ID data_id);
 
 private:
   std::unordered_map<ID, GraphVertex *> nodes;

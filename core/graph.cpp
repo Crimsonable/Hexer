@@ -44,12 +44,18 @@ void Hexer::Graph::insertVertex(GraphVertex *node) {
   nodes[node->getID()] = node;
 }
 
-void Hexer::Graph::connetVertex(GraphVertex *head, GraphVertex *tail,
-                                ID data_id) {
-  auto new_edge = new GraphEdge;
+Hexer::Edge_list Hexer::GraphVertex::operator()(Edge_list &&inputs) {
+  //inwards = std::move(inputs);
+  return eval();
+}
+
+Hexer::GraphEdge *Hexer::Graph::connetVertex(GraphVertex *head,
+                                             GraphVertex *tail, ID data_id) {
+  auto new_edge = new GraphEdge(GlobalID::getInstance()->getID());
   new_edge->data_id = data_id;
   head->addOutput(new_edge);
   tail->addInput(new_edge);
+  return new_edge;
 }
 
 Hexer::GraphSlot::GraphSlot(ID _id, GraphVertex *_node)

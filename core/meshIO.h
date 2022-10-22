@@ -1,6 +1,12 @@
+#include "base.h"
+
 #include <OpenMesh/Core/IO/MeshIO.hh>
 #include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+
+#ifdef HEXER_LOG
+#include <spdlog/spdlog.h>
+#endif
 
 #include "graph.h"
 
@@ -11,31 +17,45 @@ using HexMeshData = OpenMesh::PolyMesh_ArrayKernelT<>;
 
 template <typename MeshType> struct MeshData;
 
-template <> class MeshData<TriMeshData> : public GraphSlot {
+template <> class MeshData<TriMeshData> : public GraphEdge {
 public:
+  MeshData() : GraphEdge(GlobalID::getInstance()->getID()) {}
   TriMeshData _data;
 };
 
-template <> class MeshData<HexMeshData> : public GraphSlot {
+template <> class MeshData<HexMeshData> : public GraphEdge {
 public:
+  MeshData() : GraphEdge(GlobalID::getInstance()->getID()) {}
   HexMeshData _data;
-}
+};
 
-template <MeshType Type>
-class MeshIO;
+template <MeshType Type> class MeshIO;
 
 template <> class MeshIO<MeshType::Triangle> : public GraphVertex {
 public:
-  MeshIO() { outputs.push_back(&_mesh); }
-
-  bool readMesh(const std::string &path) {
-    return OpenMesh::IO::read_mesh(_mesh, path);
+  Edge_list operator()(MeshData<TriMeshData> &mesh, const std::string &path) {
+    _path = path;
+    addInput(&mesh);
+    return this->operator()({mesh});
   }
 
-  size_t edgesCount() const { return _mesh._data.n_edges(); }
-  size_t facesCount() const { return _mesh._data.n_faces(); }
-
 private:
-  MeshData<TriMeshData> _mesh;
-}
+  Edge_list eval() {
+    TriMeshData &mesh_data =
+        static_cast<MeshData<TriMeshData> *>(this->inwards[0])->_data;
+    if (OpenMesh::IO::read_mesh(mesh_data, _path)) {
+#ifdef HEXER_LOG
+      auto console = spdlog::stdout_color_mt("console");
+      auto err_logger = spdlog::stderr_color_mt("stderr");
+      spdlog::get("console")->info(
+          "loggers can be retrieved from a global registry using the "
+          "spdlog::get(logger_name)");
+#endif
+      return {inwards[0]};
+    }
+    return {};
+  }
+
+  std::string _path;
+};
 } // namespace Hexer
