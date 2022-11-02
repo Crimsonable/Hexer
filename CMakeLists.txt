@@ -36,8 +36,6 @@ target_link_libraries(
 	Hexer
 	OpenMeshTools.lib
     OpenMeshCore.lib
-	OPENMESH_EXPBLAS_PATH
-	OPENMESH_SPDLOG_PATH
 )
 #add_subdirectory("core")
 #add_subdirectory ("Hexer")

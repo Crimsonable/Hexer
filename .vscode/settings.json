@@ -3,7 +3,8 @@
     "cmake.sourceDirectory": "${workspaceFolder}/.",
     "cmake.generator": "Ninja",
     "files.associations": {
-        "vector": "cpp"
+        "vector": "cpp",
+        "type_traits": "cpp"
     },
     "C_Cpp.errorSquiggles": "Enabled"
 }

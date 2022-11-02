@@ -8,8 +8,9 @@ target_sources(
     PUBLIC
         base.h
         graph.h
-        meshIO.h
+        ops.h
         op.h
         traits.h
+        expr.h
 )
 target_include_directories(Hexer PUBLIC ${CMAKE_CURRENT_LIST_DIR})

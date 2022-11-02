@@ -5,6 +5,7 @@
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 
 #ifdef HEXER_LOG
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #endif
 
@@ -33,6 +34,7 @@ template <MeshType Type> class MeshIO;
 
 template <> class MeshIO<MeshType::Triangle> : public GraphVertex {
 public:
+
   Edge_list operator()(MeshData<TriMeshData> &mesh, const std::string &path) {
     _path = path;
     addInput(&mesh);
@@ -43,13 +45,11 @@ private:
   Edge_list eval() {
     TriMeshData &mesh_data =
         static_cast<MeshData<TriMeshData> *>(this->inwards[0])->_data;
+        mesh_data.calc_centroid()
     if (OpenMesh::IO::read_mesh(mesh_data, _path)) {
 #ifdef HEXER_LOG
-      auto console = spdlog::stdout_color_mt("console");
-      auto err_logger = spdlog::stderr_color_mt("stderr");
-      spdlog::get("console")->info(
-          "loggers can be retrieved from a global registry using the "
-          "spdlog::get(logger_name)");
+      auto console = spdlog::stdout_color_mt("reader");
+      spdlog::get("reader")->info("reading mesh file failed.");
 #endif
       return {inwards[0]};
     }

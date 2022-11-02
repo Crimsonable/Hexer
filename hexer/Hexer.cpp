@@ -1,23 +1,23 @@
-﻿#include <OpenMesh/Core/IO/BinaryHelper.hh>
+﻿//#include <OpenMesh/Core/IO/BinaryHelper.hh>
 #include <iostream>
 
 #include "Hexer.h"
-#include "core/op.h"
+//#include "core/op.h"
+//#include "core/ops.h"
+#include "core/expr.h"
+#include <vector>
 
 using namespace std;
 
+struct filt {
+  std::pair<Hexer::uint, Hexer::uint> range() { return {1, 3}; }
+};
+
 int main() {
-//   Hexer::Graph graph;
-//   auto ID_generator = Hexer::GlobalID::getInstance();
-
-//   Hexer::GraphVertex *node1 = new Hexer::GraphVertex(ID_generator->getID());
-//   Hexer::GraphVertex *node2 = new Hexer::GraphVertex(ID_generator->getID());
-//   Hexer::GraphEdge *input_data = new Hexer::GraphEdge(ID_generator->getID());
-
-//   graph.insertVertex(node1);
-//   graph.insertVertex(node2);
-// graph.connetVertex()
-
+  std::vector<int> a{1, 2, 3, 4};
+  Hexer::Stream<Hexer::ExecutePolicy::Hexer_Inplace, decltype(a), filt>(a,
+                                                                        filt())
+      .eval([](int &i) { i += 1; });
 
   system("pause");
   return 1;
