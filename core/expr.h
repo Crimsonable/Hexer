@@ -1,51 +1,74 @@
-#include "base.h"
-
-#include <algorithm>
-#include <type_traits>
 
 namespace Hexer {
 
-enum class ExecutePolicy { Hexer_Inplace, Hexer_Outplace };
+template <typename... Paras> class OpBase {};
+template <typename T> class UnaryOp : public OpBase<T> {};
 
-template <typename Derived> class Expr {};
+template <typename T> class NoneOp : public UnaryOp<T> {};
 
-template <ExecutePolicy Policy, typename Container, typename Filter>
-class Stream;
-
-template <typename Container, typename Filter>
-class Stream<ExecutePolicy::Hexer_Inplace, Container, Filter>
-    : public Expr<Stream<ExecutePolicy::Hexer_Inplace, Container, Filter>> {
-  using Self = typename Stream<ExecutePolicy::Hexer_Inplace, Container, Filter>;
-
+template <typename Derived, typename DataType> class Expr {
 public:
-  Stream(Container &data, Filter* filter) : _filter(filter), _data(data) {}
-
-  template <typename Op>
-  Stream<ExecutePolicy::Hexer_Inplace, Container, void> eval(Op &&op) {
-    std::pair<uint, uint> range = filter.range();
-    std::for_each(_data.begin + range.first, _data.begin + range.second,
-                  std::forward<Op>(op));
-    return Stream<ExecutePolicy::Hexer_Outplace, Container, void>(_data,
-                                                                  nullptr);
-  }
-
-  auto inplace() { return *this; }
-
-  auto outplace() {
-    return Stream<ExecutePolicy::Hexer_Outplace, Container, Filter>(_data,
-                                                                    _filter);
-  }
-
-  template <typename New_Filter>
-  Stream<ExecutePolicy::Hexer_Inplace, Container, New_Filter>
-  filter(New_Filter &&filter) {
-    return Stream<ExecutePolicy::Hexer_Inplace, Container, New_Filter>(
-        _data, std::forward<New_Filter>(filter));
-  }
-
-private:
-  Filter *_filter;
-  Container &_data;
+  Derived *cast_to() { return static_cast<Derived *>(this); }
 };
 
+template <typename Op, typename DataType>
+class Container : public Expr<Container<Op, DataType>> {
+  using Self = Container<Op, DataType>;
+
+public:
+  Container(DataType *data) : _data(data) {}
+
+  template <typename FilterOp> SLFilter<FilterOp, Self> filter_sl() {
+    return SLFilter<FilterOp, Self>(*this);
+  }
+
+  DataType *_data;
+};
+
+template <typename Op, typename PreExp>
+class SLOperation : public Expr<SLOperation<Op, PreExp>> {
+public:
+  SLOperation(PreExp &&exp) : _exp(exp) {}
+
+private:
+  PreExp _exp;
+};
+
+template <typename FilterOp, typename PreExp>
+class SLFilter : public Expr<SLFilter<FilterOp, PreExp>> {
+public:
+  SLFilter(PreExp &&exp) : _exp(exp) {}
+
+private:
+  PreExp _exp;
+};
+//template <typename Saver> struct Executor;
+
+template <typename Saver> struct Executor {
+  template <typename Container, typename DataType, typename Exp,typename... Args>
+  static inline void run(TensorBase<Container, DataType, device> *dst,
+                         const ExpBase<Exp, DataType, exp_type> &exp,
+                         Args &&...args) {
+    auto dst_shape = ShapeCheck::Check(dst->derived_to());
+    auto exp_shape = ShapeCheck::Check(exp.derived_to());
+
+    if (dst_shape == exp_shape) {
+      CPUEngine<Saver, TensorBase<Container, DataType, device>, Exp,
+                exp_type>::dispatch(dst, exp, std::forward<Args>(args)...);
+    }
+  }
+};
+
+template <typename Saver, typename DataType> struct ExpEngine {
+  template <typename Dst, typename Exp, typename... Args>
+  inline static void eval(Dst *dst, const Expr<Exp, DataType> &exp,
+                          Args &&...args) {
+    Executor<Saver>::run(dst, exp, std::forward<Args>(args)...);
+  }
+};
+
+void test() {
+  int *data = nullptr;
+  auto ct = Container<NoneOp<int>, int>(data);
+}
 } // namespace Hexer
