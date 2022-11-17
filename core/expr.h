@@ -1,74 +1,57 @@
+#include "base.h"
+#include "hex_memory.h"
+#include "traits.h"
+
+#include <tuple>
 
 namespace Hexer {
 
-template <typename... Paras> class OpBase {};
-template <typename T> class UnaryOp : public OpBase<T> {};
+enum class MemPolicy { INPLACE, OUTPLACE };
 
-template <typename T> class NoneOp : public UnaryOp<T> {};
+template <Device device, typename Derived, typename ParamTuple = std::tuple<>>
+class CrtpExprBase {
+private:
+  ParamTuple _args;
 
-template <typename Derived, typename DataType> class Expr {
 public:
+  CrtpExprBase() : _args(std::tuple<>()) {}
+
+  CrtpExprBase(const ParamTuple &params) : _args(params) {}
+
   Derived *cast_to() { return static_cast<Derived *>(this); }
-};
 
-template <typename Op, typename DataType>
-class Container : public Expr<Container<Op, DataType>> {
-  using Self = Container<Op, DataType>;
-
-public:
-  Container(DataType *data) : _data(data) {}
-
-  template <typename FilterOp> SLFilter<FilterOp, Self> filter_sl() {
-    return SLFilter<FilterOp, Self>(*this);
+  template <typename... Args> auto eval(Args &&...args) {
+    return cast_to()->run(std::forward<Args>(args)...);
   }
 
-  DataType *_data;
-};
+  void allocSpace(size_t size) { return cast_to()->alloc(size); }
 
-template <typename Op, typename PreExp>
-class SLOperation : public Expr<SLOperation<Op, PreExp>> {
-public:
-  SLOperation(PreExp &&exp) : _exp(exp) {}
-
-private:
-  PreExp _exp;
-};
-
-template <typename FilterOp, typename PreExp>
-class SLFilter : public Expr<SLFilter<FilterOp, PreExp>> {
-public:
-  SLFilter(PreExp &&exp) : _exp(exp) {}
-
-private:
-  PreExp _exp;
-};
-//template <typename Saver> struct Executor;
-
-template <typename Saver> struct Executor {
-  template <typename Container, typename DataType, typename Exp,typename... Args>
-  static inline void run(TensorBase<Container, DataType, device> *dst,
-                         const ExpBase<Exp, DataType, exp_type> &exp,
-                         Args &&...args) {
-    auto dst_shape = ShapeCheck::Check(dst->derived_to());
-    auto exp_shape = ShapeCheck::Check(exp.derived_to());
-
-    if (dst_shape == exp_shape) {
-      CPUEngine<Saver, TensorBase<Container, DataType, device>, Exp,
-                exp_type>::dispatch(dst, exp, std::forward<Args>(args)...);
-    }
+  template <typename... Args>
+    requires(std::tuple_size_v<ParamTuple> + sizeof...(Args) <=
+             Meta::traits<decltype(&Derived::eval)>::param_size)
+  auto operator()(Args &&...args) {
+    using p_type = decltype(std::tuple_cat(
+        _args, std::make_tuple(std::forward<Args>(args)...)));
+    return CrtpExprBase<device, Derived, p_type>(
+        std::tuple_cat(_args, std::make_tuple(std::forward<Args>(args)...)));
   }
+
+  // template <typename... Args>
+  // requires {
+  //   std::tuple_size_v<ParamTuple> + sizeof...(Args) ==
+  //       Meta::traits<decltype(&Derived::eval)>::param_size
+  // } auto operator()(Args &&...args) {
+  //   return Meta::tuple_apply(cast_to()->eval, _args);
+  // }
+
+  template <typename Rhs_Derived>
+  auto operator|(CrtpExprBase<device, Rhs_Derived> &&exp) {}
 };
 
-template <typename Saver, typename DataType> struct ExpEngine {
-  template <typename Dst, typename Exp, typename... Args>
-  inline static void eval(Dst *dst, const Expr<Exp, DataType> &exp,
-                          Args &&...args) {
-    Executor<Saver>::run(dst, exp, std::forward<Args>(args)...);
-  }
+template <Device device, typename Alloctor, typename EleDataType>
+class OpBase
+    : public CrtpExprBase<device, OpBase<device, Alloctor, EleDataType>> {
+public:
+  int eval(int a) { return a; }
 };
-
-void test() {
-  int *data = nullptr;
-  auto ct = Container<NoneOp<int>, int>(data);
-}
 } // namespace Hexer

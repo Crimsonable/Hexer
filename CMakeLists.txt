@@ -2,13 +2,17 @@
 
 project ("Hexer")
 
-set(OPENMESH_EXPBLAS_PATH )
+set(HEXER_EXPBLAS_PATH )
 
-set(OPENMESH_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
+set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
 
-set(OPENMESH_PATH "A:/MeshGeneration/openmesh")
+set(OPENMESH_PATH "D:/openmesh")
 set(OPENMESH_INCLUDE ${OPENMESH_PATH}/include)
 set(OPENMESH_LIB ${OPENMESH_PATH}/lib)
+
+set(OPENVOLUMNMESH_PATH_INCLUDE "D:/codes/OpenVolumeMesh/src")
+#set(OPENVOLUMNMESH_PATH_LIB "D:/codes/OpenVolumeMesh/build/Build/lib/RelWithDebInfo")
+set(OPENVOLUMNMESH_PATH_LIB "D:/codes/OpenVolumeMesh/build/Build/lib/Debug")
 
 add_definitions(-D_USE_MATH_DEFINES)
 
@@ -16,10 +20,11 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}
 	${OPENMESH_INCLUDE}
 	D:/codes/expblas
-
+	${OPENVOLUMNMESH_PATH_INCLUDE}
 )
 link_directories(
 	${OPENMESH_LIB}
+	${OPENVOLUMNMESH_PATH_LIB}
 )
 add_executable (Hexer "")
 
@@ -36,6 +41,8 @@ target_link_libraries(
 	Hexer
 	OpenMeshTools.lib
     OpenMeshCore.lib
+	#OpenVolumeMesh.lib
+	OpenVolumeMeshd.lib
 )
 #add_subdirectory("core")
 #add_subdirectory ("Hexer")
