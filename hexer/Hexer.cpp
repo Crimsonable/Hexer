@@ -9,6 +9,7 @@
 
 int main() { 
   Hexer::OpBase<Hexer::Device::CPU, int, int> op;
-  auto op2=op(1);
+  int a=1;
+  auto op2=op(a);
   return 1;
  }
