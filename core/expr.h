@@ -2,94 +2,64 @@
 #include "hex_memory.h"
 #include "traits.h"
 
+#include <string_view>
 #include <tuple>
 
 namespace Hexer {
 
 enum class MemPolicy { INPLACE, OUTPLACE };
 
-template <Device device, typename Derived>
-class CrtpExprBase<device, Derived, void, void> {
-public:
-  Derived *cast_to() { return static_cast<Derived *>(this); }
+// template <typename T> inline auto Eval(T &&val) {
+//   return Meta::ref_helper(std::forward<T>(val));
+// }
 
-  template <typename... Args> auto eval(Args &&...args) {
-    return cast_to()->run(std::forward<Args>(args)...);
-  }
-};
+// template <Device device, typename Derived, typename ParamTuple>
+// inline auto Eval(CrtpExprBase<device, Derived, ParamTuple> &expr) {
+//   return Meta::ref_helper(expr.execute());
+// }
+
+// template <size_t... I, typename... Args>
+// inline auto tuple_eval_impl(const std::index_sequence<I...> &,
+//                             std::tuple<Args...> &tp) {
+//   return std::make_tuple(
+//       Eval(std::forward<std::tuple_element_t<I, std::tuple<Args...>>>(
+//           std::get<I>(tp)))...);
+// }
+
+// template <typename... Args> inline auto tuple_eval(std::tuple<Args...> &tp) {
+//   return tuple_eval_impl(std::make_index_sequence<sizeof...(Args)>{}, tp);
+// }
+
+// template <Device device, typename Derived>
+// class CrtpExprBase<device, Derived, void> {
+// public:
+//   Derived *cast_to() { return static_cast<Derived *>(this); }
+// };
 
 template <Device device, typename Derived, typename ParamTuple>
-class CrtpExprBase<device, Derived, void, ParamTuple> {
-private:
-  ParamTuple _args;
-
-public:
-  CrtpExprBase() : _args(std::tuple<>()) {}
-
-  CrtpExprBase(ParamTuple &&params) : _args(params) {}
-
-  Derived *cast_to() { return static_cast<Derived *>(this); }
-
-  template <typename... Args> auto eval(Args &&...args) {
-    return cast_to()->run(std::forward<Args>(args)...);
-  }
-
-  auto getArgs() { return _args; }
-
-  template <typename... Args> auto operator()(Args &&...args) {
-    auto new_args = std::tuple_cat(
-        _args, std::make_tuple(Meta::ref_helper(std::forward<Args>(args))...));
-    using p_type = decltype(new_args);
-    if constexpr (std::tuple_size_v<p_type> <
-                  Meta::traits<decltype(&Derived::eval)>::param_size)
-      return CrtpExprBase<device, Derived, void, p_type>(new_args);
-    else
-      return Meta::tuple_apply(&Derived::eval, cast_to(), new_args);
-  }
-
-  template <typename Rhs_Derived, typename PTuple>
-  auto operator|(CrtpExprBase<device, Rhs_Derived, void, PTuple> &&exp) {
-    return CrtpExprBase<device, Rhs_Derived, decltype(*this), PTuple>(
-        *this, exp.getArgs())
-  }
-};
-
-template <Device device, typename Derived, typename PreExpr,
-          typename ParamTuple>
 class CrtpExprBase {
 private:
   ParamTuple _args;
-  PreExpr _pre;
 
 public:
   CrtpExprBase() : _args(std::tuple<>()) {}
 
-  CrtpExprBase(PreExpr &&pre_expr, ParamTuple &&params)
-      : _pre(std::forward<PreExpr>(pre_expr)), _args(params) {}
+  CrtpExprBase(ParamTuple &params) : _args(params) {}
 
   Derived *cast_to() { return static_cast<Derived *>(this); }
 
-  template <typename... Args> auto eval(Args &&...args) {
-    return cast_to()->run(std::forward<Args>(args)...);
+  auto execute() {
+    return Meta::tuple_apply(&Derived::eval, cast_to(), tuple_eval(_args));
   }
-
-  auto getArgs() { return _args; }
 
   template <typename... Args> auto operator()(Args &&...args) {
     auto new_args = std::tuple_cat(
         _args, std::make_tuple(Meta::ref_helper(std::forward<Args>(args))...));
     using p_type = decltype(new_args);
-    if constexpr (std::tuple_size_v<p_type> <
-                  Meta::traits<decltype(&Derived::eval)>::param_size)
-      return CrtpExprBase<device, Derived, PreExpr, p_type>(_pre, new_args);
-    else
-      return Meta::tuple_apply(&Derived::eval, cast_to(), new_args);
-  }
-
-  template <typename Rhs_Derived, typename PTuple>
-  auto operator|(CrtpExprBase<device, Rhs_Derived, void, PTuple> &&exp) {
-    return CrtpExprBase<device, Rhs_Derived, decltype(*this), PTuple>(
-        *this, exp.getArgs())
+    static_assert(std::tuple_size_v<p_type> <=
+                      Meta::traits<decltype(&Derived::eval)>::param_size,
+                  "parameters oversize.");
+    return CrtpExprBase<device, Derived, p_type>(new_args);
   }
 };
 

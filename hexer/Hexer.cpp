@@ -7,9 +7,9 @@
 #include "core/expr.h"
 #include <vector>
 
-int main() { 
+int main() {
   Hexer::OpBase<Hexer::Device::CPU, int, int> op;
-  int a=1;
-  auto op2=op(a);
+  int a = 1;
+  auto op2 = op(a);
   return 1;
- }
+}
