@@ -87,7 +87,8 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "xutility": "cpp",
-        "__tree": "cpp"
+        "__tree": "cpp",
+        "__config": "cpp"
     },
     "C_Cpp.errorSquiggles": "Enabled"
 }
