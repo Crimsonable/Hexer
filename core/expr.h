@@ -58,15 +58,15 @@ public:
                   Meta::CheckExprInTuple<ParamTuple>()) {
       return Meta::tuple_apply(&Derived::eval,
                                tuple_eval(_args, std::forward<Args>(args)...));
-    } else if constexpr (std::tuple_size<ParamTuple>::value) {
-      //static_assert(Meta::CheckExprInTuple<ParamTuple>(), "nmbb");
+    } else if constexpr (std::tuple_size<ParamTuple>::value &&
+                         sizeof...(Args)) {
+      // static_assert(Meta::CheckExprInTuple<ParamTuple>(), "nmbb");
       return Meta::tuple_apply(
           &Derived::eval,
           std::tuple_cat(_args, std::make_tuple(Meta::ref_helper(
                                     std::forward<Args>(args)...))));
     } else {
-      this->nmb3;
-      return Derived::eval(std::forward<Args>(args)...);
+      return Meta::tuple_apply(&Derived::eval, _args);
     }
   }
 

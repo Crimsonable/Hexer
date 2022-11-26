@@ -32,33 +32,39 @@ template <typename Ret, typename... Args> struct traits<Ret (*)(Args...)> {
   using ArgsTypes = std::tuple<Args...>;
 };
 
-template <typename Func, typename Class, size_t... I, typename... Args>
+template <typename Func, typename Class, size_t... I, typename ParamTuple>
 inline auto tuple_apply_impl(Func &&f, Class *self,
                              const std::index_sequence<I...> &,
-                             std::tuple<Args...> &&tp) {
-  return (self->*f)(std::forward<std::tuple_element_t<I, std::tuple<Args...>>>(
-      std::get<I>(tp))...);
+                             ParamTuple &&tp) {
+  return (self->*f)(
+      std::forward<std::tuple_element_t<I, std::remove_cvref_t<ParamTuple>>>(
+          std::get<I>(tp))...);
 }
 
-template <typename Func, typename Class, typename... Args>
-inline auto tuple_apply(Func &&f, Class *self, std::tuple<Args...> &&tp) {
-  return tuple_apply_impl(std::forward<Func>(f), self,
-                          std::make_index_sequence<sizeof...(Args)>{},
-                          std::forward<decltype(tp)>(tp));
+template <typename Func, typename Class, typename ParamTuple>
+inline auto tuple_apply(Func &&f, Class *self, ParamTuple &&tp) {
+  return tuple_apply_impl(
+      std::forward<Func>(f), self,
+      std::make_index_sequence<
+          std::tuple_size_v<std::remove_cvref_t<ParamTuple>>>{},
+      std::forward<decltype(tp)>(tp));
 }
 
-template <typename Func, size_t... I, typename... Args>
+template <typename Func, size_t... I, typename ParamTuple>
 inline auto tuple_apply_impl(Func &&f, const std::index_sequence<I...> &,
-                             std::tuple<Args...> &&tp) {
-  return f(std::forward<std::tuple_element_t<I, std::tuple<Args...>>>(
-      std::get<I>(tp))...);
+                             ParamTuple &&tp) {
+  return f(
+      std::forward<std::tuple_element_t<I, std::remove_cvref_t<ParamTuple>>>(
+          std::get<I>(tp))...);
 }
 
-template <typename Func, typename... Args>
-inline auto tuple_apply(Func &&f, std::tuple<Args...> &&tp) {
-  return tuple_apply_impl(std::forward<Func>(f),
-                          std::make_index_sequence<sizeof...(Args)>{},
-                          std::forward<decltype(tp)>(tp));
+template <typename Func, typename ParamTuple>
+inline auto tuple_apply(Func &&f, ParamTuple &&tp) {
+  return tuple_apply_impl(
+      std::forward<Func>(f),
+      std::make_index_sequence<
+          std::tuple_size_v<std::remove_cvref_t<ParamTuple>>>{},
+      std::forward<decltype(tp)>(tp));
 }
 
 template <typename ParamTuple, size_t... I>
