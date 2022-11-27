@@ -1,5 +1,5 @@
+#pragma once
 #include "base.h"
-#include "hex_memory.h"
 #include "traits.h"
 
 #include <string_view>
@@ -58,9 +58,7 @@ public:
                   Meta::CheckExprInTuple<ParamTuple>()) {
       return Meta::tuple_apply(&Derived::eval,
                                tuple_eval(_args, std::forward<Args>(args)...));
-    } else if constexpr (std::tuple_size<ParamTuple>::value &&
-                         sizeof...(Args)) {
-      // static_assert(Meta::CheckExprInTuple<ParamTuple>(), "nmbb");
+    } else if constexpr (sizeof...(Args)) {
       return Meta::tuple_apply(
           &Derived::eval,
           std::tuple_cat(_args, std::make_tuple(Meta::ref_helper(
@@ -88,9 +86,5 @@ template <Device device, typename Alloctor, typename EleDataType>
 class OpBase
     : public CrtpExprBase<device, OpBase<device, Alloctor, EleDataType>> {
 public:
-  static int eval(int a, int b) {
-    std::cout << "rua" << std::endl;
-    return 1;
-  }
 };
 } // namespace Hexer

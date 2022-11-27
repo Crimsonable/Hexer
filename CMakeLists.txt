@@ -26,8 +26,9 @@ link_directories(
 	${OPENMESH_LIB}
 	${OPENVOLUMNMESH_PATH_LIB}
 )
-add_executable (Hexer "")
+add_compile_options("/bigobj")
 
+add_executable (Hexer "")
 add_subdirectory(core)
 add_subdirectory(Hexer)
 
