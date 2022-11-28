@@ -4,10 +4,12 @@ target_sources(
     Hexer 
     PRIVATE
         io.cpp
+        filter.cpp
     PUBLIC
         base.h
         traits.h
         expr.h
         io.h
+        filter.h
 )
 target_include_directories(Hexer PUBLIC ${CMAKE_CURRENT_LIST_DIR})

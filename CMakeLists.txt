@@ -30,7 +30,8 @@ add_compile_options("/bigobj")
 
 add_executable (Hexer "")
 add_subdirectory(core)
-add_subdirectory(Hexer)
+add_subdirectory(hexer)
+add_subdirectory(visual)
 
 #file(GLOB_RECURSE core_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*core/*.cpp" "*core/*.h" "*core/*.hpp")
 #file(GLOB_RECURSE hexrer_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*hexer/*.cpp" "*hexer/*.h" "*hexer/*.hpp")

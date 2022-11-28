@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug",
+            "name": "HexerDebug",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/out/build/x64-debug/${workspaceFolderBasename}.exe",
@@ -14,7 +14,17 @@
             "cwd": "${fileDirname}",
             "environment": [],
             "console": "externalTerminal"
+        },
+        {
+            "name": "VisualDebug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/out/build/x64-debug/visual/Visual.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "externalTerminal"
         }
-
     ]
 }
