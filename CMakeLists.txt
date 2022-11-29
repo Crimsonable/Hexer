@@ -46,5 +46,3 @@ target_link_libraries(
 	#OpenVolumeMesh.lib
 	OpenVolumeMeshd.lib
 )
-#add_subdirectory("core")
-#add_subdirectory ("Hexer")

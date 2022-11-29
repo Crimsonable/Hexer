@@ -90,5 +90,8 @@
         "__tree": "cpp",
         "__config": "cpp"
     },
-    "C_Cpp.errorSquiggles": "Enabled"
+    "C_Cpp.errorSquiggles": "Enabled",
+    "cmake.configureSettings": {
+        "CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    }
 }

@@ -20,7 +20,8 @@
                 "CMAKE_CXX_COMPILER": "cl.exe",
                 "CMAKE_EXPORT_COMPILE_COMMANDS":true,
                 "CMAKE_LINKER":"D:/vs2022/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/link.exe",
-                "CMAKE_CXX_STANDARD": "20"
+                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
             }
         },
         {
