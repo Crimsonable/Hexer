@@ -2,6 +2,9 @@
 
 #include <Expblas/graph_funcs.h>
 #include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace Visual;
 
@@ -28,7 +31,8 @@ Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
 }
 
 Expblas::mat4f Camera::GetViewMatrix() {
-  return Expblas::lookAt(Position, Position + Front, Up);
+  return Expblas::lookAt<Expblas::StorageMajor::ColumnMajor>(
+      Position, Position + Front, Up);
 }
 
 void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime) {

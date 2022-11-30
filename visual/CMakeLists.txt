@@ -18,6 +18,7 @@ find_package(glad CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 find_package(openmesh CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 add_definitions(-D_USE_MATH_DEFINES)
 
@@ -58,6 +59,7 @@ target_link_libraries(Visual PRIVATE assimp::assimp)
 target_link_libraries(Visual PRIVATE OpenGL32.lib)
 target_link_libraries(Visual PRIVATE OpenMeshCore)
 target_link_libraries(Visual PRIVATE OpenMeshTools)
+target_link_libraries(Visual PRIVATE glm::glm)
 
 #target_link_libraries(
 #	Visual
