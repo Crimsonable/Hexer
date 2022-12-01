@@ -57,9 +57,8 @@ target_link_libraries(Visual PRIVATE glad::glad)
 target_link_libraries(Visual PRIVATE glfw)
 target_link_libraries(Visual PRIVATE assimp::assimp)
 target_link_libraries(Visual PRIVATE OpenGL32.lib)
-target_link_libraries(Visual PRIVATE OpenMeshCore)
-target_link_libraries(Visual PRIVATE OpenMeshTools)
 target_link_libraries(Visual PRIVATE glm::glm)
+target_link_libraries(Visual PRIVATE HexerCore)
 
 #target_link_libraries(
 #	Visual

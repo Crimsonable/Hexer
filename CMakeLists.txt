@@ -29,6 +29,7 @@ link_directories(
 add_compile_options("/bigobj")
 
 add_executable (Hexer "")
+add_library(HexerCore STATIC "")
 add_subdirectory(core)
 add_subdirectory(hexer)
 add_subdirectory(visual)
@@ -45,4 +46,5 @@ target_link_libraries(
     OpenMeshCore.lib
 	#OpenVolumeMesh.lib
 	OpenVolumeMeshd.lib
+	HexerCore
 )
