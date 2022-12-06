@@ -15,6 +15,10 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
   setupMesh();
 }
 
+Mesh::Mesh(Mesh &&mesh)
+    : vertices(std::move(mesh.vertices)), indices(std::move(mesh.indices)),
+      textures(std::move(textures)), VAO(mesh.VAO) {}
+
 void Mesh::Draw(Shader &shader) {
   // bind appropriate textures
   unsigned int diffuseNr = 1;

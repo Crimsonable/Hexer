@@ -1,6 +1,5 @@
 #include "model.h"
 
-
 #include <glad/glad.h>
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
@@ -8,8 +7,8 @@
 
 using namespace Visual;
 
-unsigned int Visual::TextureFromFile(const char *path, const std::string &directory,
-                             bool gamma) {
+unsigned int Visual::TextureFromFile(const char *path,
+                                     const std::string &directory, bool gamma) {
   std::string filename = std::string(path);
   filename = directory + '/' + filename;
 
@@ -48,10 +47,14 @@ unsigned int Visual::TextureFromFile(const char *path, const std::string &direct
   return textureID;
 }
 
-Model::Model(std::string const &path, bool gamma)
-    : gammaCorrection(gamma) {
+Model::Model(std::string const &path, bool gamma) : gammaCorrection(gamma) {
   loadModel(path);
 }
+
+Model::Model(Model &&model)
+    : textures_loaded(std::move(model.textures_loaded)),
+      meshes(std::move(model.meshes)), directory(std::move(model.directory)),
+      gammaCorrection(model.gammaCorrection) {}
 
 void Model::Draw(Shader &shader) {
   for (unsigned int i = 0; i < meshes.size(); i++)

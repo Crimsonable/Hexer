@@ -44,6 +44,8 @@ public:
   Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
        std::vector<Texture> textures);
 
+  Mesh(Mesh&& mesh);
+
   // render the mesh
   void Draw(Shader &shader);
 
