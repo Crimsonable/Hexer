@@ -1,15 +1,17 @@
 #pragma once
+#include <Expblas/ftensor.h>
 #include <fstream>
+#include <glad/glad.h>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <Expblas/ftensor.h>
-#include <glad/glad.h>
+#include <unordered_map>
 
 namespace Visual {
 class Shader {
 public:
   unsigned int ID;
+
   // constructor generates the shader on the fly
   // ------------------------------------------------------------------------
   Shader(const char *vertexPath, const char *fragmentPath,
@@ -48,4 +50,6 @@ private:
   // ------------------------------------------------------------------------
   void checkCompileErrors(GLuint shader, std::string type);
 };
+
+extern std::unordered_map<std::string, Shader> gShaderMap;
 } // namespace Visual

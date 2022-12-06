@@ -88,7 +88,18 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "__tree": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "variant": "cpp",
+        "cfenv": "cpp",
+        "complex": "cpp",
+        "csignal": "cpp",
+        "future": "cpp",
+        "random": "cpp",
+        "regex": "cpp",
+        "source_location": "cpp",
+        "strstream": "cpp",
+        "typeindex": "cpp",
+        "unordered_set": "cpp"
     },
     "C_Cpp.errorSquiggles": "Enabled",
     "cmake.configureSettings": {
