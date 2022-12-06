@@ -38,6 +38,7 @@ add_executable (Visual "")
 target_sources(
 	Visual
 	PRIVATE
+		meshLoader.cpp
 		visual.cpp
 		shader.cpp
 		mesh.cpp
