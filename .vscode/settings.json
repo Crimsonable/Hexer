@@ -1,5 +1,5 @@
 {
-    "cmake.cmakePath": "D:/devtools/cmake/bin/cmake.exe",
+    "cmake.cmakePath": "A:/buildTools/cmake/bin/cmake.exe",
     "cmake.sourceDirectory": "${workspaceFolder}/.",
     "cmake.generator": "Ninja",
     "files.associations": {
@@ -88,10 +88,21 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "__tree": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "variant": "cpp",
+        "cfenv": "cpp",
+        "complex": "cpp",
+        "csignal": "cpp",
+        "future": "cpp",
+        "random": "cpp",
+        "regex": "cpp",
+        "source_location": "cpp",
+        "strstream": "cpp",
+        "typeindex": "cpp",
+        "unordered_set": "cpp"
     },
     "C_Cpp.errorSquiggles": "Enabled",
     "cmake.configureSettings": {
-        "CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "A:/buildTools/vcpkg/scripts/buildsystems/vcpkg.cmake"
     }
 }

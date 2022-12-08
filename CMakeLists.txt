@@ -5,7 +5,14 @@ project ("Hexer")
 set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
 
 set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
-set(OpenVolumeMesh_DIR "D:/codes/OVM/lib/cmake/OpenVolumeMesh")
+
+set(OPENMESH_PATH "D:/openmesh")
+set(OPENMESH_INCLUDE ${OPENMESH_PATH}/include)
+set(OPENMESH_LIB ${OPENMESH_PATH}/lib)
+
+set(OPENVOLUMNMESH_PATH_INCLUDE "D:/codes/OpenVolumeMesh/src")
+#set(OPENVOLUMNMESH_PATH_LIB "D:/codes/OpenVolumeMesh/build/Build/lib/RelWithDebInfo")
+set(OPENVOLUMNMESH_PATH_LIB "D:/codes/OpenVolumeMesh/build/Build/lib/Debug")
 
 add_definitions(-D_USE_MATH_DEFINES)
 

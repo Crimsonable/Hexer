@@ -79,10 +79,14 @@ int main() {
   glEnable(GL_DEPTH_TEST);
 
   // build and compile shaders
-  // -------------------------
-  Visual::Shader ourShader("D:/codes/Hexer/visual/shader/basic_model.vs",
-                           "D:/codes/Hexer/visual/shader/basic_model.fs");
 
+  Visual::gShaderMap["pure_color"] =
+      Visual::Shader("../../../../visual/shader/basic_model.vs",
+                     "../../../../visual/shader/pure_color.fs");
+
+  Visual::gShaderMap["texture"] =
+      Visual::Shader("../../../../visual/shader/basic_model.vs",
+                     "../../../../visual/shader/basic_model.fs");
   // load models
   // -----------
   Visual::Model ourModel(
@@ -114,8 +118,8 @@ int main() {
 
     // view/projection transformations
     auto projection = Expblas::perspective(Visual::radians(camera.Zoom),
-                                      (float)SCR_WIDTH / (float)SCR_HEIGHT,
-                                      0.1f, 100.0f);
+                                           (float)SCR_WIDTH / (float)SCR_HEIGHT,
+                                           0.1f, 100.0f);
     Expblas::mat4f view = camera.GetViewMatrix();
     ourShader.setMat4("projection", projection);
     ourShader.setMat4("view", view);

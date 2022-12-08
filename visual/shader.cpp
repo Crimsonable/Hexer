@@ -2,6 +2,8 @@
 
 using namespace Visual;
 
+static std::unordered_map<std::string,Shader> gShaderMap;
+
 Shader::Shader(const char *vertexPath, const char *fragmentPath,
                const char *geometryPath) {
   // 1. retrieve the vertex/fragment source code from filePath
