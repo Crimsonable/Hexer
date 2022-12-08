@@ -87,4 +87,14 @@ class OpBase
     : public CrtpExprBase<device, OpBase<device, Alloctor, EleDataType>> {
 public:
 };
+
+template <Device device, typename ContainerT>
+class Stream : public CrtpExprBase<device, Stream<device, ContainerT>,
+                                   std::tuple<ContainerT>> {
+public:
+  Stream(ContainerT &&data)
+      : CrtpExprBase<device, Stream<device, ContainerT>,
+                     std::tuple<ContainerT>>(std::tuple<ContainerT>{data}) {}
+};
+
 } // namespace Hexer

@@ -94,7 +94,7 @@ int main() {
 
   // draw in wireframe
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+auto& shader=Visual::gShaderMap["texture"];
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window)) {
@@ -114,15 +114,15 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // don't forget to enable shader before setting uniforms
-    ourShader.use();
+    shader.use();
 
     // view/projection transformations
     auto projection = Expblas::perspective(Visual::radians(camera.Zoom),
                                            (float)SCR_WIDTH / (float)SCR_HEIGHT,
                                            0.1f, 100.0f);
     Expblas::mat4f view = camera.GetViewMatrix();
-    ourShader.setMat4("projection", projection);
-    ourShader.setMat4("view", view);
+    shader.setMat4("projection", projection);
+    shader.setMat4("view", view);
 
     // render the loaded model
     Expblas::mat4f model =
@@ -131,8 +131,8 @@ int main() {
     // translate it down so it's at the center of the scene model =
     // glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big
     // for our scene, so scale it down
-    ourShader.setMat4("model", model);
-    ourModel.Draw(ourShader);
+    shader.setMat4("model", model);
+    ourModel.Draw(Visual::gShaderMap["texture"]);
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved
     // etc.)

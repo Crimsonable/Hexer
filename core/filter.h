@@ -10,6 +10,8 @@ using FaceIter = OpenVolumeMesh::FaceHandle;
 
 class MeshTypeFilter : public CrtpExprBase<Device::CPU, MeshTypeFilter> {
 public:
-  static std::vector<FaceIter> eval(MeshType type, const PolyhedralMesh &mesh);
+  static bool MeshTypeFilter::eval(const MeshType &type,
+                                   const OpenVolumeMesh::FaceHandle &face,
+                                   const PolyhedralMesh &mesh);
 };
 } // namespace Hexer

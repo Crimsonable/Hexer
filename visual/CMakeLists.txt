@@ -7,23 +7,20 @@ project("Visual")
 #set(GLFW_PATH "D:/codes/opengl/glfw")
 #set(OPENGL_PATH "D:/codes/opengl")
 
-set(OPENVOLUMNMESH_PATH "A:/MeshGeneration/OpenVolumeMesh")
+#set(OPENVOLUMNMESH_PATH "A:/MeshGeneration/OpenVolumeMesh")
 #set(OPENVOLUMNMESH_PATH_LIB "D:/codes/OpenVolumeMesh/build/Build/lib/RelWithDebInfo")
-set(OPENVOLUMNMESH_PATH_LIB "A:/MeshGeneration/OVM/Build/lib/Debug")
+#set(OPENVOLUMNMESH_PATH_LIB "A:/MeshGeneration/OVM/Build/lib/Debug")
 
 find_package(glad CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
-find_package(openmesh CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 
 add_definitions(-D_USE_MATH_DEFINES)
 
 include_directories(
 	${CMAKE_SOURCE_DIR}
-	#${OPENMESH_PATH}/include
 	${HEXER_EXPBLAS_PATH}
-	${OPENVOLUMNMESH_PATH}/include
 )
 link_directories(
 	#${OPENMESH_PATH}/lib
@@ -57,12 +54,4 @@ target_link_libraries(Visual PRIVATE assimp::assimp)
 target_link_libraries(Visual PRIVATE OpenGL32.lib)
 target_link_libraries(Visual PRIVATE glm::glm)
 target_link_libraries(Visual PRIVATE HexerCore)
-target_link_libraries(Visual PRIVATE OpenVolumeMeshd.lib)
-#target_link_libraries(
-#	Visual
-#	OpenMeshTools.lib
-#   OpenMeshCore.lib
-#	#OpenVolumeMesh.lib
-#	OpenVolumeMeshd.lib
-#	OpenGL32.lib
-#)
+#target_link_libraries(Visual PRIVATE OpenVolumeMeshd.lib)

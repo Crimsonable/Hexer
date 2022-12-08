@@ -2,7 +2,7 @@
 
 using namespace Visual;
 
-static std::unordered_map<std::string,Shader> gShaderMap;
+std::unordered_map<std::string,Shader> Visual::gShaderMap;
 
 Shader::Shader(const char *vertexPath, const char *fragmentPath,
                const char *geometryPath) {
