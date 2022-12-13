@@ -1,0 +1,69 @@
+﻿{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "installDir": "${sourceDir}/out/install/${presetName}",
+            "architecture": {
+                "strategy": "external",
+                "value": "x64"
+            },
+            "toolset": {
+                "strategy": "external",
+                "value": "v143,host=x64"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe",
+                "CMAKE_EXPORT_COMPILE_COMMANDS":true,
+                "CMAKE_LINKER":"D:/vs2022/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/link.exe",
+                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            }
+        },
+        {
+            "name": "x64-debug",
+            "displayName": "x64 Debug",
+            "inherits": "windows-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "x64-release",
+            "displayName": "x64 Release",
+            "inherits": "x64-debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "x64-RelWithDebInfo",
+            "displayName": "x64 RelWithDebInfo",
+            "inherits": "windows-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "x64-release",
+            "configurePreset": "x64-release",
+            "verbose": true
+        },
+        {
+            "name": "x64-debug",
+            "configurePreset": "x64-debug",
+            "verbose": true
+        },
+        {
+            "name": "x64-RelWithDebInfo",
+            "configurePreset": "x64-RelWithDebInfo",
+            "verbose": true
+        }
+    ]
+}
