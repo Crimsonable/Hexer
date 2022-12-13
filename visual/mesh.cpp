@@ -15,9 +15,9 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
   setupMesh();
 }
 
-Mesh::Mesh(Mesh &&mesh)
-    : vertices(std::move(mesh.vertices)), indices(std::move(mesh.indices)),
-      textures(std::move(textures)), VAO(mesh.VAO) {}
+// Mesh::Mesh(Mesh &&mesh)
+//     : vertices(std::move(mesh.vertices)), indices(std::move(mesh.indices)),
+//       textures(std::move(textures)), VAO(mesh.VAO) {}
 
 void Mesh::Draw(Shader &shader) {
   // bind appropriate textures
@@ -109,4 +109,10 @@ void Mesh::setupMesh() {
   glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                         (void *)offsetof(Vertex, m_Weights));
   glBindVertexArray(0);
+}
+
+void Mesh::setGeometry(const std::vector<Vertex> &_vertices,
+                       const std::vector<unsigned int> &_indices) {
+  vertices = _vertices;
+  indices = _indices;
 }

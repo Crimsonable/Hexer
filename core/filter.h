@@ -8,10 +8,7 @@
 namespace Hexer {
 using FaceIter = OpenVolumeMesh::FaceHandle;
 
-class MeshTypeFilter : public CrtpExprBase<Device::CPU, MeshTypeFilter> {
-public:
-  static bool MeshTypeFilter::eval(const MeshType &type,
-                                   const OpenVolumeMesh::FaceHandle &face,
-                                   const PolyhedralMesh &mesh);
+class MeshFilter : public CrtpExprBase<Device::CPU, MeshFilter> {
+  static auto eval(MeshType meshtype, PolyhedralMesh &mesh);
 };
 } // namespace Hexer

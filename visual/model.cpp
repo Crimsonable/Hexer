@@ -61,6 +61,13 @@ void Model::Draw(Shader &shader) {
     meshes[i].Draw(shader);
 }
 
+void Model::addMesh(Mesh &mesh) { meshes.push_back(mesh); }
+
+Mesh &Model::addMesh() {
+  meshes.emplace_back();
+  return meshes.back();
+}
+
 void Model::loadModel(std::string const &path) {
   // read file via ASSIMP
   Assimp::Importer importer;

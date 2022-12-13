@@ -6,6 +6,7 @@ target_sources(
         io.cpp
         filter.cpp
         mesh.cpp
+        kd_tree.cpp
     PUBLIC
         base.h
         traits.h
@@ -13,5 +14,6 @@ target_sources(
         io.h
         filter.h
         mesh.h
+        kd_tree.h
 )
 target_include_directories(HexerCore PUBLIC ${CMAKE_CURRENT_LIST_DIR})

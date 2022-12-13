@@ -1,9 +1,9 @@
 #pragma once
-#include <string>
-#include <vector>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <string>
+#include <vector>
 
 #include "mesh.h"
 #include "shader.h"
@@ -25,10 +25,16 @@ public:
   // constructor, expects a filepath to a 3D model.
   Model(std::string const &path, bool gamma = false);
 
-  Model(Model&& model);
+  Model(Model &&model);
 
   // draws the model, and thus all its meshes
   void Draw(Shader &shader);
+
+  // add mesh which has already been constructed
+  void addMesh(Mesh &mesh);
+
+  // add abstract mesh
+  Mesh &addMesh();
 
 private:
   // loads a model with supported ASSIMP extensions from file and stores the
@@ -45,6 +51,6 @@ private:
   // checks all material textures of a given type and loads the textures if
   // they're not loaded yet. the required info is returned as a Texture struct.
   std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type,
-                                       std::string typeName);
+                                            std::string typeName);
 };
 } // namespace Visual

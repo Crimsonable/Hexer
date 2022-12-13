@@ -2,9 +2,9 @@
 
 project ("Hexer")
 
-set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
+set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
 set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
-set(OpenVolumeMesh_DIR "D:/codes/OVM/lib/cmake/OpenVolumeMesh")
+set(OpenVolumeMesh_DIR "A:/MeshGeneration/OVM/install/lib/cmake/OpenVolumeMesh")
 
 add_definitions(-D_USE_MATH_DEFINES)
 

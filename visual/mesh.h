@@ -42,12 +42,17 @@ public:
 
   // constructor
   Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
-       std::vector<Texture> textures);
+       std::vector<Texture> textures = {});
 
-  Mesh(Mesh&& mesh);
+  // Mesh(Mesh &&mesh);
+
+  Mesh() {}
 
   // render the mesh
   void Draw(Shader &shader);
+
+  void setGeometry(const std::vector<Vertex> &vertices,
+                   const std::vector<unsigned int> &indices);
 
 private:
   // render data
