@@ -1,6 +1,7 @@
 #include "meshLoader.h"
 
-void Visual::convertMeshToModel(Hexer::PolyhedralMesh &mesh, Model &model) {
+Visual::Model Visual::convertMeshToModel(Hexer::PolyhedralMesh &mesh) {
+  Visual::Model model;
   Mesh &visual_mesh = model.addMesh();
 
   auto filter =
@@ -8,6 +9,8 @@ void Visual::convertMeshToModel(Hexer::PolyhedralMesh &mesh, Model &model) {
   auto [vertices, indices] = filter.execute(mesh);
   visual_mesh.vertices = vertices;
   visual_mesh.indices = indices;
+  visual_mesh.setupMesh();
+  return model;
 }
 
 std::pair<std::vector<Visual::Vertex>, std::vector<unsigned int>>
@@ -30,5 +33,9 @@ Visual::MeshFilterVisual::eval(Hexer::MeshType meshtype,
       }
     }
   }
+
+  assert(vertices.size() - 1 ==
+         *std::max_element(indices.begin(), indices.end()));
+
   return std::make_pair(std::move(vertices), std::move(indices));
 }

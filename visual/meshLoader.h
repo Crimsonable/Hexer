@@ -3,7 +3,7 @@
 #include "model.h"
 
 namespace Visual {
-void convertMeshToModel(Hexer::PolyhedralMesh &mesh, Model &model);
+Model convertMeshToModel(Hexer::PolyhedralMesh &mesh);
 
 class MeshToModelConverter
     : public Hexer::CrtpExprBase<Hexer::Device::CPU, MeshToModelConverter> {

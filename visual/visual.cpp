@@ -3,6 +3,7 @@
 #include <stb_image.h>
 
 #include "camera.h"
+#include "meshLoader.h"
 #include "model.h"
 #include "shader.h"
 
@@ -12,6 +13,7 @@
 
 #include <Expblas/graph_funcs.h>
 #include <GLFW/glfw3.h>
+#include <core/io.h>
 #include <glad/glad.h>
 #include <iostream>
 
@@ -80,21 +82,33 @@ int main() {
 
   // build and compile shaders
 
+  // Visual::gShaderMap["pure_color"] =
+  //     Visual::Shader("../../../../visual/shader/basic_model.vs",
+  //                    "../../../../visual/shader/pure_color.fs");
+
+  // Visual::gShaderMap["texture"] =
+  //     Visual::Shader("../../../../visual/shader/basic_model.vs",
+  //                    "../../../../visual/shader/basic_model.fs");
+
   Visual::gShaderMap["pure_color"] =
-      Visual::Shader("../../../../visual/shader/basic_model.vs",
-                     "../../../../visual/shader/pure_color.fs");
+      Visual::Shader("A:/MeshGeneration/Hexer/visual/shader/basic_model.vs",
+                     "A:/MeshGeneration/Hexer/visual/shader/pure_color.fs");
 
   Visual::gShaderMap["texture"] =
-      Visual::Shader("../../../../visual/shader/basic_model.vs",
-                     "../../../../visual/shader/basic_model.fs");
+      Visual::Shader("A:/MeshGeneration/Hexer/visual/shader/basic_model.vs",
+                     "A:/MeshGeneration/Hexer/visual/shader/basic_model.fs");
   // load models
   // -----------
-  Visual::Model ourModel(
-      "D:/codes/LearnOpenGL/resources/objects/backpack/backpack.obj");
+  Hexer::PolyMeshReader reader;
+  auto mesh = reader.execute("A:/MeshGeneration/OpenVolumeMesh/examples/"
+                             "vtk_datafile_2/vtk_files/s01c_cube.vtk");
+  auto model = Visual::convertMeshToModel(mesh);
+
+  // Visual::Model ourModel(
+  //     "D:/codes/LearnOpenGL/resources/objects/backpack/backpack.obj");
 
   // draw in wireframe
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-auto& shader=Visual::gShaderMap["texture"];
+  auto &shader = Visual::gShaderMap["pure_color"];
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window)) {
@@ -125,14 +139,21 @@ auto& shader=Visual::gShaderMap["texture"];
     shader.setMat4("view", view);
 
     // render the loaded model
-    Expblas::mat4f model =
+    Expblas::mat4f model_mat =
         Expblas::eye<float, Expblas::StorageMajor::ColumnMajor, 4>();
     // model = Expblas::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); //
     // translate it down so it's at the center of the scene model =
     // glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big
     // for our scene, so scale it down
-    shader.setMat4("model", model);
-    ourModel.Draw(Visual::gShaderMap["texture"]);
+    shader.setMat4("model", model_mat);
+
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // shader.setVec4("pureColor", Expblas::vec4f(1, 1, 1, 1));
+    // model.Draw(shader);
+
+    glPolygonMode(GL_FRONT, GL_FILL);
+    shader.setVec4("pureColor", Expblas::vec4f(0, 1, 0, 1));
+    model.Draw(shader);
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved
     // etc.)

@@ -2,10 +2,10 @@
 
 using namespace Visual;
 
-std::unordered_map<std::string,Shader> Visual::gShaderMap;
+std::unordered_map<std::string, Shader> Visual::gShaderMap;
 
-Shader::Shader(const char *vertexPath, const char *fragmentPath,
-               const char *geometryPath) {
+Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath,
+               const std::string &geometryPath) {
   // 1. retrieve the vertex/fragment source code from filePath
   std::string vertexCode;
   std::string fragmentCode;
@@ -32,7 +32,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath,
     vertexCode = vShaderStream.str();
     fragmentCode = fShaderStream.str();
     // if geometry shader path is present, also load a geometry shader
-    if (geometryPath != nullptr) {
+    if (geometryPath != "") {
       gShaderFile.open(geometryPath);
       std::stringstream gShaderStream;
       gShaderStream << gShaderFile.rdbuf();
@@ -59,7 +59,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath,
   checkCompileErrors(fragment, "FRAGMENT");
   // if geometry shader is given, compile geometry shader
   unsigned int geometry;
-  if (geometryPath != nullptr) {
+  if (geometryPath != "") {
     const char *gShaderCode = geometryCode.c_str();
     geometry = glCreateShader(GL_GEOMETRY_SHADER);
     glShaderSource(geometry, 1, &gShaderCode, NULL);
@@ -70,7 +70,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath,
   ID = glCreateProgram();
   glAttachShader(ID, vertex);
   glAttachShader(ID, fragment);
-  if (geometryPath != nullptr)
+  if (geometryPath != "")
     glAttachShader(ID, geometry);
   glLinkProgram(ID);
   checkCompileErrors(ID, "PROGRAM");
@@ -78,7 +78,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath,
   // necessery
   glDeleteShader(vertex);
   glDeleteShader(fragment);
-  if (geometryPath != nullptr)
+  if (geometryPath != "")
     glDeleteShader(geometry);
 }
 
@@ -116,6 +116,7 @@ void Shader::setVec3(const std::string &name, float x, float y, float z) const {
 
 void Shader::setVec4(const std::string &name,
                      const Expblas::vec4f &value) const {
+  auto id = glGetUniformLocation(ID, name.c_str());
   glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, value.dataptr());
 }
 
@@ -135,6 +136,7 @@ void Shader::setMat3(const std::string &name, const Expblas::mat3f &mat) const {
 }
 
 void Shader::setMat4(const std::string &name, const Expblas::mat4f &mat) const {
+  auto id = glGetUniformLocation(ID, name.c_str());
   glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE,
                      mat.dataptr());
 }

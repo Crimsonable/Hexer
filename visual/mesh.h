@@ -54,11 +54,11 @@ public:
   void setGeometry(const std::vector<Vertex> &vertices,
                    const std::vector<unsigned int> &indices);
 
+  // initializes all the buffer objects/arrays
+  void setupMesh();
+
 private:
   // render data
   unsigned int VBO, EBO;
-
-  // initializes all the buffer objects/arrays
-  void setupMesh();
 };
 } // namespace Visual
