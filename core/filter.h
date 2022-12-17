@@ -2,7 +2,6 @@
 #include "expr.h"
 
 #include "mesh.h"
-#include <OpenVolumeMesh/Core/Iterators/FaceIter.hh>
 #include <OpenVolumeMesh/Mesh/PolyhedralMesh.hh>
 #include <vector>
 
