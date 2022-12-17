@@ -7,7 +7,7 @@
 namespace Hexer {
 using uint = unsigned int;
 using ID = size_t;
-using PolyhedralMesh = OpenVolumeMesh::GeometricPolyhedralMeshV3f;
+//using PolyhedralMesh = OpenVolumeMesh::GeometricPolyhedralMeshV3f;
 
 enum class Device { CPU, GPU };
 enum class MeshType { Triangle = 3, Quads = 4 };

@@ -62,7 +62,7 @@ public:
       return Meta::tuple_apply(
           &Derived::eval,
           std::tuple_cat(_args, std::make_tuple(Meta::ref_helper(
-                                    std::forward<Args>(args)...))));
+                                    std::forward<Args>(args))...)));
     } else {
       return Meta::tuple_apply(&Derived::eval, _args);
     }

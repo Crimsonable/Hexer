@@ -1,5 +1,7 @@
 #pragma once
 #include "expr.h"
+#include "mesh.h"
+
 #include <string>
 
 namespace Hexer {

@@ -16,8 +16,10 @@ public:
 class MeshFilterVisual
     : public Hexer::CrtpExprBase<Hexer::Device::CPU, MeshFilterVisual> {
 public:
-  static std::pair<std::vector<Vertex>, std::vector<unsigned int>>
-  eval(Hexer::MeshType meshtype, Hexer::PolyhedralMesh &mesh);
+  static void eval(Hexer::MeshType meshtype, Mesh &out_mesh,
+                   std::map<unsigned int, unsigned int> &map,
+                   const OpenVolumeMesh::FaceHandle &face,
+                   Hexer::PolyhedralMesh *mesh);
 };
 
 } // namespace Visual
