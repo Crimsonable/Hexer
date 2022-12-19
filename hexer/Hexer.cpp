@@ -4,6 +4,7 @@
 #include "core/expr.h"
 #include "core/filter.h"
 #include "core/io.h"
+#include "core/deformation.h"
 
 int main() {
   Hexer::PolyMeshReader reader;

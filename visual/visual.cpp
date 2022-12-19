@@ -91,17 +91,16 @@ int main() {
   //                    "../../../../visual/shader/basic_model.fs");
 
   Visual::gShaderMap["pure_color"] =
-      Visual::Shader("A:/MeshGeneration/Hexer/visual/shader/basic_model.vs",
-                     "A:/MeshGeneration/Hexer/visual/shader/pure_color.fs");
+      Visual::Shader("D:/codes/Hexer/visual/shader/basic_model.vs",
+                     "D:/codes/Hexer/visual/shader/pure_color.fs");
 
   Visual::gShaderMap["texture"] =
-      Visual::Shader("A:/MeshGeneration/Hexer/visual/shader/basic_model.vs",
-                     "A:/MeshGeneration/Hexer/visual/shader/basic_model.fs");
+      Visual::Shader("D:/codes/Hexer/visual/shader/basic_model.vs",
+                     "D:/codes/Hexer/visual/shader/basic_model.fs");
   // load models
   // -----------
   Hexer::PolyMeshReader reader;
-  auto mesh = reader.execute("A:/MeshGeneration/OpenVolumeMesh/examples/"
-                             "vtk_datafile_2/vtk_files/s01c_cube.vtk");
+  auto mesh = reader.execute("D:/codes/Hexer/models/s01c_cube.vtk");
   auto model = Visual::convertMeshToModel(mesh);
 
   // Visual::Model ourModel(
@@ -147,9 +146,9 @@ int main() {
     // for our scene, so scale it down
     shader.setMat4("model", model_mat);
 
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    // shader.setVec4("pureColor", Expblas::vec4f(1, 1, 1, 1));
-    // model.Draw(shader);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    shader.setVec4("pureColor", Expblas::vec4f(1, 1, 1, 1));
+    model.Draw(shader);
 
     glPolygonMode(GL_FRONT, GL_FILL);
     shader.setVec4("pureColor", Expblas::vec4f(0, 1, 0, 1));
