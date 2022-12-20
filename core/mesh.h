@@ -2,43 +2,43 @@
 #include "expr.h"
 
 #include <Eigen/SparseCore>
-#include <OpenVolumeMesh/Core/Iterators/FaceIter.hh>
-#include <OpenVolumeMesh/Mesh/PolyhedralMesh.hh>
+#include <vector>
+// #include <OpenVolumeMesh/Core/Iterators/FaceIter.hh>
+// #include <OpenVolumeMesh/Mesh/PolyhedralMesh.hh>
+#include <cinolib/meshes/meshes.h>
+#include <cinolib/smoother.h>
 
 namespace Hexer {
 
-class PolyhedralMesh : public OpenVolumeMesh::GeometricPolyhedralMeshV3f {
-public:
-  PolyhedralMesh() : OpenVolumeMesh::GeometricPolyhedralMeshV3f() {}
-
-  template <typename Op> auto faces_apply(Op &&op) {
-    for (auto &&iter : this->faces())
-      op.execute(std::forward<decltype(iter)>(iter), this);
-  }
-
-  template <typename Op> auto edges_apply(Op &&op) {
-    for (auto &&iter : this->edges())
-      op.execute(std::forward<decltype(iter)>(iter), this);
-  }
-
-  template <typename Op> auto vertices_apply(Op &&op) {
-    for (auto &&iter : this->vertices())
-      op.execute(std::forward<decltype(iter)>(iter), this);
-  }
-};
+template <typename M, typename V, typename E, typename P>
+double uniform_weighter(std::vector<std::pair<uint, double>> &weights, uint vid,
+                        const cinolib::AbstractMesh<M, V, E, P> &mesh) {
+  for (uint vvid : mesh.adj_v2v(vid))
+    weights.push_back({vvid, 1.0});
+}
 
 class MeshAdjacencyMatrix
     : public CrtpExprBase<Device::CPU, MeshAdjacencyMatrix> {
 public:
-  static auto eval(Eigen::SparseMatrix<float> &adjacency,
-                   PolyhedralMesh *surf_mesh) {
-    int n = surf_mesh->n_vertices();
-    adjacency = Eigen::SparseMatrix<float>(n, n);
-    for (auto &&iter : surf_mesh->edges()) {
-      auto start_idx = surf_mesh->edge(iter).from_vertex().uidx();
-      auto end_idx = surf_mesh->edge(iter).to_vertex().uidx();
-      adjacency.insert(start_idx, end_idx) = 1;
+  template <typename Weighter, typename M, typename V, typename E, typename P>
+  static auto eval(Weighter &&weighter,
+                   const cinolib::AbstractMesh<M, V, E, P> &mesh) {
+                    cinolib::AbstractPolygonMesh<M,V,E,P> m;
+                    m.mesh_is_volumetric();
+    auto adjacency =
+        Eigen::SparseMatrix<double>(mesh.num_verts(), mesh.num_verts());
+    for (uint vid = 0; vid < mesh.num_verts(); ++vid) {
+      std::vector<std::pair<uint, double>> weights;
+      weighter(weights, vid, mesh);
+      double sum = 0.0;
+      for (auto &&w : weights) {
+        sum += w.second;
+        adjacency.insert(vid, w.first) = -w.second;
+      }
+      adjacency.insert(vid, vid) = sum;
     }
+    adjacency.makeCompressed();
+    return adjacency;
   }
 };
 

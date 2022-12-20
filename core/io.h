@@ -5,8 +5,8 @@
 #include <string>
 
 namespace Hexer {
-class PolyMeshReader : public CrtpExprBase<Device::CPU, PolyMeshReader> {
-public:
-  static PolyhedralMesh eval(const std::string& path);
-};
+// class PolyMeshReader : public CrtpExprBase<Device::CPU, PolyMeshReader> {
+// public:
+//   static PolyhedralMesh eval(const std::string& path);
+// };
 } // namespace Hexer
