@@ -1,15 +1,14 @@
 ﻿#include <iostream>
 #include <vector>
 
-#include "core/expr.h"
-#include "core/filter.h"
-#include "core/io.h"
-#include "core/deformation.h"
+#include <cinolib/meshes/drawable_polyhedralmesh.h>
+#include <cinolib/gl/glcanvas.h>
+
+#include "core/mesh.h"
 
 int main() {
-  Hexer::PolyMeshReader reader;
-  //auto filter = Hexer::MeshTypeFilter()(Hexer::MeshType::Quads);
-  auto mesh = reader.execute("D:/codes/Hexer/models/s01c_cube.vtk");
-  //auto triangle_set = filter.execute(mesh);
-  return 1;
+  cinolib::DrawablePolyhedralmesh<> mesh("A:/MeshGeneration/Hexer/models/s01c_cube.vtk");
+  cinolib::GLcanvas gui;
+  gui.push(&mesh);
+  return gui.launch();
 }

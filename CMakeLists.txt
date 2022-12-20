@@ -2,15 +2,16 @@
 
 project ("Hexer")
 
-set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
+set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
 set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
-set(OpenVolumeMesh_DIR "D:/codes/OVM/lib/cmake/OpenVolumeMesh")
-set(cinolib_DIR "D:/codes/cinolib")
+#set(OpenVolumeMesh_DIR "D:/codes/OVM/lib/cmake/OpenVolumeMesh")
+set(cinolib_DIR "A:/MeshGeneration/cinolib")
 
 add_definitions(-D_USE_MATH_DEFINES)
-add_definitions(-DCINOLIB_USES_OPENGL_GLFW_IMGUI)
+set(CINOLIB_USES_OPENGL_GLFW_IMGUI ON)
+set(CINOLIB_USES_VTK ON)
 
-find_package(OpenVolumeMesh CONFIG REQUIRED)
+#find_package(OpenVolumeMesh CONFIG REQUIRED)
 find_package(OpenMesh CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(cinolib CONFIG REQUIRED)
@@ -30,11 +31,12 @@ add_library(HexerCore STATIC "")
 add_compile_options("/bigobj")
 
 target_link_libraries(HexerCore PRIVATE ${OPENMESH_LIBRARIES})
-target_link_libraries(HexerCore PUBLIC OpenVolumeMesh::OpenVolumeMesh)
+#target_link_libraries(HexerCore PUBLIC OpenVolumeMesh::OpenVolumeMesh)
 target_link_libraries(HexerCore PUBLIC Eigen3::Eigen)
 target_link_libraries(HexerCore PUBLIC cinolib)
 target_link_libraries(HexerCore PUBLIC glfw)
 target_link_libraries(Hexer PRIVATE HexerCore)
+target_link_libraries(Hexer PRIVATE OpenGL32.lib)
 
 add_subdirectory(core)
 add_subdirectory(hexer)
