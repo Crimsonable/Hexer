@@ -17,15 +17,21 @@ double uniform_weighter(std::vector<std::pair<uint, double>> &weights, uint vid,
     weights.push_back({vvid, 1.0});
 }
 
-class MeshAdjacencyMatrix
-    : public CrtpExprBase<Device::CPU, MeshAdjacencyMatrix> {
+class dummyclass : public CrtpExprBase<Device::CPU, dummyclass> {
 public:
-  template <typename Weighter, typename M, typename V, typename E, typename P>
+  template <typename T> static auto eval(T a) { return 1; }
+};
+
+template <typename Weighter, typename M = cinolib::Mesh_std_attributes,
+          typename V = cinolib::Vert_std_attributes,
+          typename E = cinolib::Edge_std_attributes,
+          typename P = cinolib::Polygon_std_attributes>
+class LaplacianMatrix
+    : public CrtpExprBase<Device::CPU, LaplacianMatrix<Weighter, M, V, E, P>> {
+public:
   static auto eval(Weighter &&weighter,
                    const cinolib::AbstractMesh<M, V, E, P> &mesh) {
-                    cinolib::AbstractPolygonMesh<M,V,E,P> m;
-                    m.mesh_is_volumetric();
-    auto adjacency =
+    auto Laplacian =
         Eigen::SparseMatrix<double>(mesh.num_verts(), mesh.num_verts());
     for (uint vid = 0; vid < mesh.num_verts(); ++vid) {
       std::vector<std::pair<uint, double>> weights;
@@ -33,12 +39,12 @@ public:
       double sum = 0.0;
       for (auto &&w : weights) {
         sum += w.second;
-        adjacency.insert(vid, w.first) = -w.second;
+        Laplacian.insert(vid, w.first) = -w.second;
       }
-      adjacency.insert(vid, vid) = sum;
+      Laplacian.insert(vid, vid) = sum;
     }
-    adjacency.makeCompressed();
-    return adjacency;
+    Laplacian.makeCompressed();
+    return Laplacian;
   }
 };
 

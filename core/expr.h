@@ -71,9 +71,10 @@ public:
   template <typename... Args> auto operator()(Args &&...args) {
     auto new_args = std::tuple_cat(
         _args, std::make_tuple(Meta::ref_helper(std::forward<Args>(args))...));
-    static_assert(std::tuple_size_v<decltype(new_args)> <=
-                      Meta::traits<decltype(&Derived::eval)>::param_size,
-                  "parameters oversize.");
+    static_assert(
+        std::tuple_size_v<decltype(new_args)> <=
+            Meta::traits<decltype(&Derived::template eval)>::param_size,
+        "parameters oversize.");
     return CrtpExprBase<device, Derived, decltype(new_args)>(new_args);
   }
 
