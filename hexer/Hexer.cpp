@@ -3,15 +3,18 @@
 
 #include <cinolib/gl/glcanvas.h>
 #include <cinolib/meshes/drawable_polyhedralmesh.h>
+#include <Eigen/Dense>
 
-#include "core/mesh.h"
+#include "core/deformation.h"
 
 int main() {
   cinolib::DrawablePolyhedralmesh<> mesh(
-      "A:/MeshGeneration/Hexer/models/s01c_cube.vtk");
+      "D:/codes/Hexer/models/s01c_cube.vtk");
   auto smoother =
-      Hexer::LaplacianMatrix<decltype(Hexer::uniform_weighter)>().operator()(
-          &Hexer::uniform_weighter, mesh);
+      Hexer::LaplacianMatrix().operator()(Hexer::UniformWeighter(), mesh);
+  auto matrix = smoother.execute();
+  Eigen::MatrixX<double> mat(2,3);
+  auto mm=mat.outerStride();
   cinolib::GLcanvas gui;
   gui.push(&mesh);
   return gui.launch();
