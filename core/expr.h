@@ -47,7 +47,7 @@ private:
   auto execute_helper(const std::index_sequence<I...> &,
                       ArgsTuple &&args_tuple) {
     return Derived::eval(
-        std::forward<std::tuple_element_t<I, std::remove_cvref_t<ParamTuple>>>(
+        std::forward<std::tuple_element_t<I, std::remove_cvref_t<ArgsTuple>>>(
             std::get<I>(args_tuple))...);
   }
 
@@ -77,10 +77,12 @@ public:
       //     &Derived::eval,
       //     std::tuple_cat(_args, std::make_tuple(Meta::ref_helper(
       //                               std::forward<Args>(args))...)));
+      auto tp = std::tuple_cat(_args, std::make_tuple(Meta::ref_helper(
+                                          std::forward<Args>(args))...));
       return execute_helper(
-          std::make_index_sequence<std::tuple_size_v<decltype(std::make_tuple(
-              Meta::ref_helper(std::forward<Args>(args))...))>>{},
-          std::make_tuple(Meta::ref_helper(std::forward<Args>(args))...));
+          std::make_index_sequence<
+              std::tuple_size_v<std::remove_cvref_t<decltype(tp)>>>{},
+          tp);
     } else {
       // return Meta::tuple_apply(&Derived::eval, _args);
       return execute_helper(
