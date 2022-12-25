@@ -13,6 +13,9 @@ template <typename T>
 concept ConceptNonExpr = !
 ConceptExpr<T>;
 
+template <typename T>
+concept ConceptTuple = requires { std::tuple_size_v<T>; };
+
 template <typename Type> struct traits;
 
 template <Device device, typename Alloctor, typename EleDataType>
@@ -88,9 +91,12 @@ template <typename ParamTuple> constexpr bool CheckExprInTuple() {
 }
 
 template <typename T> auto ref_helper(T &&t) {
-  if constexpr (std::is_lvalue_reference_v<T>)
-    return std::ref(std::forward<T>(t));
-  else
+  if constexpr (std::is_lvalue_reference_v<T>) {
+    if constexpr (std::is_const_v<T>)
+      return std::cref(std::forward<T>(t));
+    else
+      return std::ref(std::forward<T>(t));
+  } else
     return std::forward<T>(t);
 }
 } // namespace Meta

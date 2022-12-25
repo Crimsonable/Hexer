@@ -4,32 +4,39 @@
 
 #include <string_view>
 #include <tuple>
+#include <cinolib/meshes/meshes.h>
 
 namespace Hexer {
 
 enum class MemPolicy { INPLACE, OUTPLACE };
 
 template <Meta::ConceptNonExpr T, typename... Args>
-inline auto Eval(T &&val, Args &&...args) {
-  return Meta::ref_helper(std::forward<T>(val));
+HEXER_INLINE auto Eval(T &&val, Args &&...args) {
+  return Meta::ref_helper(std::forward_as_tuple(val));
 }
 
 template <Meta::ConceptExpr T, typename... Args>
-inline auto Eval(T &&expr, Args &&...args) {
-  return Meta::ref_helper(expr.execute(std::forward<Args>(args)...));
+HEXER_INLINE auto Eval(T &&expr, Args &&...args) {
+  if constexpr (Meta::ConceptTuple<decltype(expr.execute(
+                    std::forward<Args>(args)...))>)
+    return Meta::ref_helper(expr.execute(std::forward<Args>(args)...));
+  else
+    return Meta::ref_helper(
+        std::forward_as_tuple(expr.execute(std::forward<Args>(args)...)));
 }
 
 template <typename ParamTuple, size_t... I, typename... Args>
-inline auto tuple_eval_impl(ParamTuple &&tp, const std::index_sequence<I...> &,
-                            Args &&...args) {
-  return std::make_tuple(Eval(
+HEXER_INLINE auto tuple_eval_impl(ParamTuple &&tp,
+                                  const std::index_sequence<I...> &,
+                                  Args &&...args) {
+  return std::tuple_cat(Eval(
       std::forward<std::tuple_element_t<I, std::remove_cvref_t<ParamTuple>>>(
           std::get<I>(tp)),
       std::forward<Args>(args)...)...);
 }
 
 template <typename ParamTuple, typename... Args>
-inline auto tuple_eval(ParamTuple &&tp, Args &&...args) {
+HEXER_INLINE auto tuple_eval(ParamTuple &&tp, Args &&...args) {
   return tuple_eval_impl(
       tp,
       std::make_index_sequence<
@@ -42,13 +49,15 @@ class CrtpExprBase {
 private:
   ParamTuple _args;
 
-private:
+public:
   template <typename ArgsTuple, size_t... I>
   auto execute_helper(const std::index_sequence<I...> &,
                       ArgsTuple &&args_tuple) {
-    return Derived::eval(
-        std::forward<std::tuple_element_t<I, std::remove_cvref_t<ArgsTuple>>>(
-            std::get<I>(args_tuple))...);
+    // return Derived::eval(
+    //     std::forward<std::tuple_element_t<I,
+    //     std::remove_cvref_t<ArgsTuple>>>(
+    //         std::get<I>(args_tuple))...);
+    return Derived::eval(std::get<I>(std::forward<ArgsTuple>(args_tuple))...);
   }
 
 public:
