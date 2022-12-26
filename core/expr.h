@@ -53,11 +53,11 @@ public:
   template <typename ArgsTuple, size_t... I>
   auto execute_helper(const std::index_sequence<I...> &,
                       ArgsTuple &&args_tuple) {
-    // return Derived::eval(
-    //     std::forward<std::tuple_element_t<I,
-    //     std::remove_cvref_t<ArgsTuple>>>(
-    //         std::get<I>(args_tuple))...);
-    return Derived::eval(std::get<I>(args_tuple)...);
+    return Derived::eval(
+        std::forward<std::tuple_element_t<I,
+        std::remove_cvref_t<ArgsTuple>>>(
+            std::get<I>(args_tuple))...);
+    //return Derived::eval(std::get<I>(args_tuple)...);
   }
 
 public:
