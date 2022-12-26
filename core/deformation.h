@@ -2,6 +2,8 @@
 #include "expr.h"
 #include "mesh.h"
 
+#include <cinolib/meshes/meshes.h>
+
 namespace Hexer {
 enum class SmoothMethod { UNIFORM, COTANGENT };
 
@@ -18,15 +20,18 @@ public:
                   uint current_vid,
                   const cinolib::AbstractMesh<M, V, E, P> &mesh) {
     auto ring = mesh.vert_n_ring(current_vid, 1);
-    entries.emplace_back(current_vid, current_vid, ring.size());
     std::vector<uint> offset;
 
     for (int i = 0; i < nv; ++i)
       offset.push_back(i * mesh.num_verts());
 
+    for (auto &&_offset : offset)
+      entries.emplace_back(current_vid + _offset, current_vid + _offset,
+                           ring.size());
+
     for (auto &&iter : ring)
       for (auto &&_offset : offset)
-        entries.emplace_back(current_vid, iter + _offset, -1.0);
+        entries.emplace_back(current_vid + _offset, iter + _offset, -1.0);
   }
 };
 
@@ -45,7 +50,7 @@ public:
 
     for (auto &&iter : ring)
       for (auto &&_offset : offset)
-        entries.emplace_back(current_vid, iter + _offset, -1.0);
+        entries.emplace_back(current_vid + _offset, iter + _offset, -1.0);
   }
 };
 
@@ -55,7 +60,7 @@ public:
   static auto eval(const LaplacianOptions &options,
                    const cinolib::AbstractMesh<M, V, E, P> &mesh) {
     uint n = mesh.num_verts();
-    auto Laplacian = Eigen::SparseMatrix<double>(n, n * 3);
+    auto Laplacian = Eigen::SparseMatrix<double>(n * 3, n * 3);
     std::vector<Eigen::Triplet<double>> entries;
 
     if (options.method == SmoothMethod::UNIFORM) {
@@ -79,14 +84,14 @@ class LaplacianSmoother : public CrtpExprBase<Device::CPU, LaplacianSmoother> {
 public:
   template <typename M1, typename V1, typename E1, typename P1, typename M2,
             typename V2, typename E2, typename P2>
-  static auto eval(cinolib::AbstractPolygonMesh<M1,V1, E1, P1> &output,
+  static auto eval(cinolib::AbstractPolygonMesh<M1, V1, E1, P1> &output,
                    const LaplacianOptions &options,
                    const Eigen::SparseMatrix<double> &Laplacian,
-                   const cinolib::AbstractPolygonMesh<M2, V2, E2, P2> &mesh) {
+                   const cinolib::AbstractMesh<M2, V2, E2, P2> &mesh) {
     std::vector<double> vertices_coords;
     uint n = mesh.num_verts();
     vertices_coords.resize(n * 3);
-    output = mesh;
+    output.clear();
 
     for (int vid = 0; vid < n; ++vid) {
       auto p = mesh.vert(vid);
@@ -100,9 +105,14 @@ public:
     for (int i = 0; i < options.n_smooth; ++i)
       v -= options.lambda * Laplacian * v;
 
-    for (int vid = 0; vid < output.num_verts(); ++vid)
-      output.vert(vid) =
-          cinolib::vec3d(v.coeff(vid), v.coeff(vid + n), v.coeff(vid + 2 * n));
+    for (int vid = 0; vid < mesh.num_verts(); ++vid) {
+      output.vert_add(
+          cinolib::vec3d(v.coeff(vid), v.coeff(vid + n), v.coeff(vid + 2 * n)));
+    }
+
+    for (int fid = 0; fid < mesh.num_polys(); ++fid) {
+      output.poly_add(mesh.poly_verts_id(fid));
+    }
   }
 };
 } // namespace Hexer

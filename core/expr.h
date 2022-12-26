@@ -2,9 +2,9 @@
 #include "base.h"
 #include "traits.h"
 
+#include <cinolib/meshes/meshes.h>
 #include <string_view>
 #include <tuple>
-#include <cinolib/meshes/meshes.h>
 
 namespace Hexer {
 
@@ -46,8 +46,8 @@ HEXER_INLINE auto tuple_eval(ParamTuple &&tp, Args &&...args) {
 
 template <Device device, typename Derived, typename ParamTuple>
 class CrtpExprBase {
-private:
-  ParamTuple _args;
+public:
+  std::remove_reference_t<ParamTuple> _args;
 
 public:
   template <typename ArgsTuple, size_t... I>
@@ -57,13 +57,13 @@ public:
     //     std::forward<std::tuple_element_t<I,
     //     std::remove_cvref_t<ArgsTuple>>>(
     //         std::get<I>(args_tuple))...);
-    return Derived::eval(std::get<I>(std::forward<ArgsTuple>(args_tuple))...);
+    return Derived::eval(std::get<I>(args_tuple)...);
   }
 
 public:
   CrtpExprBase() : _args(std::tuple<>()) {}
 
-  CrtpExprBase(ParamTuple &params) : _args(params) {}
+  CrtpExprBase(ParamTuple &params) : _args(std::move(params)) {}
 
   Derived *cast_to() { return static_cast<Derived *>(this); }
 
