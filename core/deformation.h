@@ -39,21 +39,14 @@ class CotangentWeighter {
 public:
   template <typename M, typename V, typename E, typename P>
   void operator()(std::vector<Eigen::Triplet<double>> &entries, uint nv,
-                  uint current_vid,
-                  const cinolib::AbstractMesh<M, V, E, P> &mesh) {
-    const cinolib::Trimesh<> *tri_mesh =
-        dynamic_cast<const cinolib::Trimesh<M, V, E, P> *>(&mesh);
-    if (tri_mesh == nullptr) {
-      assert(false && "mesh is not trimesh, doesn't support cotangent weight.");
-      return;
-    }
-
+                  uint current_vid, const cinolib::Trimesh<M, V, E, P> &mesh) {
     std::vector<uint> offset;
     for (int i = 0; i < nv; ++i)
       offset.push_back(i * mesh.num_verts());
 
+    // caculate cotangent weight using cinolib internal function
     std::vector<std::pair<uint, double>> weight;
-    tri_mesh->vert_weights_cotangent(current_vid, weight);
+    mesh.vert_weights_cotangent(current_vid, weight);
 
     double sum =
         std::accumulate(weight.begin(), weight.end(), 0.0,
@@ -70,7 +63,7 @@ public:
                              -w.second);
   }
 };
-
+// caculate Laplacian matrix using given method(cotangent,uniform)
 class LaplacianMatrix : public CrtpExprBase<Device::CPU, LaplacianMatrix> {
 public:
   template <typename M, typename V, typename E, typename P>
@@ -86,9 +79,16 @@ public:
         weighter(entries, 3, vid, mesh);
       }
     } else if (options.method == SmoothMethod::COTANGENT) {
+      // cotangent only support triangle mesh, test mesh type using dynamic_cast
+      const cinolib::Trimesh<> *tri_mesh =
+          dynamic_cast<const cinolib::Trimesh<M, V, E, P> *>(&mesh);
+      if (tri_mesh == nullptr) {
+        assert(false &&
+               "mesh is not trimesh, doesn't support cotangent weight.");
+      }
       auto weighter = CotangentWeighter();
-      for (uint vid = 0; vid < mesh.num_verts(); ++vid) {
-        weighter(entries, 3, vid, mesh);
+      for (uint vid = 0; vid < tri_mesh->num_verts(); ++vid) {
+        weighter(entries, 3, vid, *tri_mesh);
       }
     }
     Laplacian.setFromTriplets(entries.begin(), entries.end());
