@@ -118,7 +118,9 @@ public:
 
     for (int i = 0; i < options.n_smooth; ++i) {
       v -= options.lambda * Laplacian * v;
-      Laplacian = std::move(std::get<1>(LaplacianMatrix::eval(options, mesh)));
+      if (options.method == SmoothMethod::COTANGENT)
+        Laplacian =
+            std::move(std::get<1>(LaplacianMatrix::eval(options, mesh)));
     }
 
     for (int vid = 0; vid < mesh.num_verts(); ++vid) {

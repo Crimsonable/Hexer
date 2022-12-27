@@ -7,7 +7,8 @@ target_sources(
         filter.cpp
         mesh.cpp
         kd_tree.cpp
-        deformation.h
+        deformation.cpp
+        transformation.cpp
     PUBLIC
         base.h
         traits.h
@@ -17,5 +18,6 @@ target_sources(
         mesh.h
         kd_tree.h
         deformation.h
+        transformation.h
 )
 target_include_directories(HexerCore PUBLIC ${CMAKE_CURRENT_LIST_DIR})

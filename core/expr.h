@@ -2,7 +2,6 @@
 #include "base.h"
 #include "traits.h"
 
-#include <cinolib/meshes/meshes.h>
 #include <string_view>
 #include <tuple>
 

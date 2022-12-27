@@ -1,7 +1,6 @@
 ﻿#include <iostream>
 #include <vector>
 
-#include <Eigen/Dense>
 #include <cinolib/gl/glcanvas.h>
 #include <cinolib/meshes/meshes.h>
 
