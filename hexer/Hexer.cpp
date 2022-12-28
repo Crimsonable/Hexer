@@ -7,7 +7,10 @@
 #include "core/deformation.h"
 
 int main() {
-  cinolib::DrawablePolyhedralmesh<> mesh("D:/codes/Hexer/models/s01c_cube.vtk");
+  cinolib::DrawablePolyhedralmesh<> mesh(
+      "A:/MeshGeneration/Hexer/models/s01c_cube.vtk");
+  // cinolib::DrawablePolyhedralmesh<>
+  // mesh("D:/codes/Hexer/models/s01c_cube.vtk");
   mesh.update_bbox();
   cinolib::DrawableTrimesh<> surface_mesh;
   cinolib::DrawableTrimesh<> smooth_mesh;

@@ -115,7 +115,8 @@
         "polynomials": "cpp",
         "__debug": "cpp",
         "coroutine": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "specialfunctions": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {
