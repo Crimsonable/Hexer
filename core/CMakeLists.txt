@@ -9,6 +9,7 @@ target_sources(
         kd_tree.cpp
         deformation.cpp
         transformation.cpp
+        bfgs.cpp
     PUBLIC
         base.h
         traits.h
@@ -19,5 +20,6 @@ target_sources(
         kd_tree.h
         deformation.h
         transformation.h
+        bfgs.h
 )
 target_include_directories(HexerCore PUBLIC ${CMAKE_CURRENT_LIST_DIR})
