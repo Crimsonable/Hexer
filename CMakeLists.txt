@@ -2,12 +2,12 @@
 
 project ("Hexer")
 
-set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
-#set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
+#set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
+set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
 set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
 #set(OpenVolumeMesh_DIR "D:/codes/OVM/lib/cmake/OpenVolumeMesh")
-set(cinolib_DIR "A:/MeshGeneration/cinolib")
-#set(cinolib_DIR "D:/codes/cinolib")
+#set(cinolib_DIR "A:/MeshGeneration/cinolib")
+set(cinolib_DIR "D:/codes/cinolib")
 
 add_definitions(-D_USE_MATH_DEFINES)
 set(CINOLIB_USES_OPENGL_GLFW_IMGUI ON)
@@ -27,19 +27,22 @@ include_directories(
 link_directories(
 	${OPENVOLUMNMESH_PATH_LIB}
 )
+add_compile_options("/bigobj")
 
-add_executable (Hexer "")
 add_library(HexerCore STATIC "")
-#add_compile_options("/bigobj")
-
-#target_link_libraries(HexerCore PRIVATE ${OPENMESH_LIBRARIES})
-#target_link_libraries(HexerCore PUBLIC OpenVolumeMesh::OpenVolumeMesh)
 target_link_libraries(HexerCore PUBLIC Eigen3::Eigen)
 target_link_libraries(HexerCore PUBLIC cinolib)
 target_link_libraries(HexerCore PUBLIC glfw)
-target_link_libraries(Hexer PRIVATE HexerCore)
-target_link_libraries(Hexer PRIVATE OpenGL32.lib)
-
+target_link_libraries(HexerCore PUBLIC OpenGL32.lib)
 add_subdirectory(core)
-add_subdirectory(hexer)
-add_subdirectory(visual)
+
+add_executable (Smoother "")
+target_link_libraries(Smoother PRIVATE HexerCore)
+add_subdirectory("./hexer/smoother")
+
+add_executable(GlobalOrientation "")
+target_link_libraries(GlobalOrientation PRIVATE HexerCore)
+add_subdirectory("./hexer/globalOrientation")
+
+#add_subdirectory(hexer)
+#add_subdirectory(visual)
