@@ -2,13 +2,15 @@
 
 #include <eigen3/Eigen/Cholesky>
 #include <eigen3/Eigen/Dense>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/spdlog.h>
 
 namespace Hexer {
 struct BFGSOptions {
-  uint max_iteration = 500;
+  uint max_iteration = 1000;
   double rho = 0.55;
   double sigma = 0.4;
-  double tol = 0.001;
+  double tol = 1e-6;
 };
 
 template <typename Functor> class BFGS {
@@ -16,23 +18,31 @@ template <typename Functor> class BFGS {
 
 public:
   BFGS(Functor &functor, BFGSOptions options = BFGSOptions())
-      : _functor(functor), _options(options) {}
+      : _functor(functor), _options(options) {
+    uint m = functor.inputs();
+    Bk.resize(m, m);
+    gk.resize(m);
+    pk.resize(m);
+    _x.resize(m);
+  }
 
   int solve(Eigen::VectorX<Scalar> &x) {
     Bk = Eigen::MatrixX<Scalar>::Identity(x.rows(), x.rows());
     int k = 0;
 
-    Eigen::LLT<Eigen::MatrixX<Scalar>> llt(x.rows(), x.rows());
+    Eigen::LLT<Eigen::MatrixX<Scalar>> llt(x.rows());
 
     do {
       _functor.df(x, gk);
-      llt = Eigen::LLT<Eigen::MatrixX<Scalar>>(Bk);
+      llt.compute(Bk);
       pk = llt.solve(-gk);
 
       int m = 0;
-      for (m < 20; ++m) {
-        double new_f = _functor(x + std::pow(_options.rho, m) * pk);
-        double old_f = _functor(x);
+      Scalar new_f;
+      Scalar old_f;
+      _functor(x, old_f);
+      for (; m < 20; ++m) {
+        _functor(x + std::pow(_options.rho, m) * pk, new_f);
         if (new_f <=
             old_f + _options.sigma * std::pow(_options.rho, m) * gk.dot(pk))
           break;
@@ -42,12 +52,25 @@ public:
       _functor.df(_x, pk);
       gk = pk - gk;
       pk = _x - x;
-      if (gk.dot(pk) > 0)
-        Bk += (Scalar(1.0) / gk.dot(pk)) * gk * gk.transpose() -
-              Bk * pk * pk.transpose() * Bk /
-                  (pk.transpose().dot(pk.transpose() * Bk));
+      if (gk.dot(pk) > 0) {
+        Scalar coeff1 = Scalar(1.0) / gk.dot(pk);
+        Scalar coeff2 = Scalar(1.0) / pk.transpose().dot(pk.transpose() * Bk);
+
+        Bk += coeff1 * gk * gk.transpose() -
+              coeff2 * Bk * pk * pk.transpose() * Bk;
+      }
+#ifdef _DEBUG
+      spdlog::get("OptimalLog")
+          ->info("iter: {} | TargetVal: {:03.2f} | x: "
+                 "({:03.2f},{:03.2f},{:03.2f})",
+                 k, old_f, x[0], x[1], x[2]);
+#endif
+
       x = _x;
-    } while (gk.norm() > _options.tol && k < _options.max_iteration)
+      k++;
+    } while (gk.norm() > _options.tol && k < _options.max_iteration);
+
+    return 0;
   }
 
 private:
@@ -57,5 +80,10 @@ private:
   Eigen::VectorX<Scalar> gk;
   Eigen::VectorX<Scalar> pk;
   Eigen::VectorX<Scalar> _x;
+
+#ifdef _DEBUG
+  std::shared_ptr<spdlog::logger> logger =
+      spdlog::basic_logger_mt("OptimalLog", "logs/opt.txt", true);
+#endif
 };
 } // namespace Hexer

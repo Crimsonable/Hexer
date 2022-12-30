@@ -1,3 +1,4 @@
+#include "bfgs.h"
 #include "expr.h"
 
 #include <Expblas/graph_funcs.h>
@@ -55,7 +56,7 @@ inline Eigen::Matrix3d dfRotationTheta_z(double x, double y, double z) {
 
 template <typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
 struct Functor {
-  typedef _Scalar Scalar;
+  using Scalar = _Scalar;
   enum { InputsAtCompileTime = NX, ValuesAtCompileTime = NY };
   typedef Eigen::Matrix<Scalar, InputsAtCompileTime, 1> InputType;
   typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, 1> ValueType;
@@ -83,7 +84,7 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
     _ERn = Eigen::Matrix3Xd(3, _mesh.num_polys());
   }
 
-  int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) {
+  int operator()(const Eigen::VectorXd &x, double &fvec) {
     Eigen::Matrix3d rotation = EulerToRotationMatrix(x);
     Eigen::Matrix3Xd Rn = Eigen::Map<Eigen::Matrix3Xd>(_normals.data()->ptr(),
                                                        3, _normals.size());
@@ -91,19 +92,19 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
     _Rn = rotation * Rn;
     _Rn = _Rn.cwiseProduct(_Rn);
     _ERn = _trans * _Rn;
-    fvec[0] = _Rn.cwiseProduct(_ERn).sum();
+    fvec = _Rn.cwiseProduct(_ERn).sum();
 
     return 0;
   }
 
-  int df(const Eigen::VectorXd &x, Eigen::MatrixXd &fjac) {
+  int df(const Eigen::VectorXd &x, Eigen::VectorXd &fjac) {
     Eigen::Matrix3d rotation = EulerToRotationMatrix(x);
     Eigen::Matrix3Xd n = Eigen::Map<Eigen::Matrix3Xd>(_normals.data()->ptr(), 3,
                                                       _normals.size());
 
     _Rn = rotation * n;
     _ERn = (_trans + _trans.transpose()) * _Rn.cwiseProduct(_Rn);
-    _ERn = _ERn.cwiseProduct(_Rn.transpose());
+    _ERn = _ERn.cwiseProduct(_Rn);
     Eigen::VectorXd coeffs =
         Eigen::Map<Eigen::VectorXd>(_Rn.data(), _normals.size());
     coeffs = _ERn.colwise().sum().transpose();
@@ -113,15 +114,15 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
 
     coeffs2 =
         (dfRotationTheta_x(x[0], x[1], x[2]) * n).colwise().sum().transpose();
-    fjac.coeffRef(0, 1) = coeffs.cwiseProduct(coeffs2).sum();
+    fjac[0] = coeffs.cwiseProduct(coeffs2).sum();
 
     coeffs2 =
         (dfRotationTheta_y(x[0], x[1], x[2]) * n).colwise().sum().transpose();
-    fjac.coeffRef(0, 2) = coeffs.cwiseProduct(coeffs2).sum();
+    fjac[1] = coeffs.cwiseProduct(coeffs2).sum();
 
     coeffs2 =
         (dfRotationTheta_z(x[0], x[1], x[2]) * n).colwise().sum().transpose();
-    fjac.coeffRef(0, 2) = coeffs.cwiseProduct(coeffs2).sum();
+    fjac[2] = coeffs.cwiseProduct(coeffs2).sum();
 
     return 0;
   }
@@ -138,10 +139,9 @@ class GlobalOrientationAlign
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(cinolib::AbstractMesh<M, V, E, P> &mesh) {
-    Eigen::VectorXd euler{{10, 0, 0}};
+    Eigen::VectorXd euler{{0, 0, 0}};
     GlobalOrientationAlignFunctor functor(mesh);
-    // Eigen::LevenbergMarquardt<decltype(functor)> solver(functor);
-    Eigen::HybridNonLinearSolver<decltype(functor)> solver(functor);
+    BFGS<decltype(functor)> solver(functor);
     auto info = solver.solve(euler);
 
     Eigen::AngleAxisd rotation;

@@ -22,9 +22,15 @@ int main() {
   surface_mesh.update_bbox();
   surface_mesh.poly_set_color(cinolib::Color(0.3098, 0.7647, 0.9686));
 
+  double T = 0;
+  Hexer::GlobalOrientationAlignFunctor f(surface_mesh);
+  f(Eigen::VectorXd{{0, 0, 0}}, T);
+  std::cout << T << std::endl;
+
   ori_mesh = surface_mesh;
   auto orientation_opt = Hexer::GlobalOrientationAlign();
   orientation_opt.execute(ori_mesh);
+  ori_mesh.translate(cinolib::vec3d(mesh.bbox().delta_x() * 1.2, 0, 0));
   ori_mesh.update_bbox();
 
   mesh.updateGL();
@@ -32,7 +38,7 @@ int main() {
   ori_mesh.updateGL();
 
   cinolib::GLcanvas gui;
-  gui.push(&mesh);
+  // gui.push(&mesh);
   gui.push(&surface_mesh);
   gui.push(&ori_mesh);
   return gui.launch();
