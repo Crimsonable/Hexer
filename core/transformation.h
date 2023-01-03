@@ -5,6 +5,7 @@
 #include <cinolib/meshes/meshes.h>
 #include <eigen3/unsupported/Eigen/MatrixFunctions>
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
+#include <eigen3/unsupported/Eigen/NumericalDiff>
 
 namespace Hexer {
 inline Eigen::Matrix3d EulerToRotationMatrix(const Eigen::VectorXd &euler) {
@@ -53,24 +54,6 @@ inline Eigen::Matrix3d dfRotationTheta_z(double x, double y, double z) {
       {cy * cz, sx * sy * cz - cx * sz, cx * sy * cz + sx * sz},
       {0, 0, 0}};
 }
-
-template <typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
-struct Functor {
-  using Scalar = _Scalar;
-  enum { InputsAtCompileTime = NX, ValuesAtCompileTime = NY };
-  typedef Eigen::Matrix<Scalar, InputsAtCompileTime, 1> InputType;
-  typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, 1> ValueType;
-  typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime>
-      JacobianType;
-
-  const int m_inputs, m_values;
-
-  Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
-  Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
-
-  int inputs() const { return m_inputs; }
-  int values() const { return m_values; }
-};
 
 template <typename M = cinolib::Mesh_std_attributes,
           typename V = cinolib::Vert_std_attributes,
@@ -143,6 +126,8 @@ public:
     GlobalOrientationAlignFunctor functor(mesh);
     BFGS<decltype(functor)> solver(functor);
     auto info = solver.solve(euler);
+
+    Eigen::LevenbergMarquardtSpace<
 
     Eigen::AngleAxisd rotation;
     rotation.fromRotationMatrix(EulerToRotationMatrix(euler));

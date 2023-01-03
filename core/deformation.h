@@ -1,4 +1,5 @@
 #pragma once
+#include "bfgs.h"
 #include "expr.h"
 #include "mesh.h"
 
@@ -63,6 +64,14 @@ public:
                              -w.second);
   }
 };
+
+class AverageWeighter {
+public:
+  template <typename M, typename V, typename E, typename P>
+  void operator()(std::vector<Eigen::Triplet<double>> &entries, uint nv,
+                  uint current_vid, const cinolib::Trimesh<M, V, E, P> &mesh) {}
+};
+
 // caculate Laplacian matrix using given method(cotangent,uniform)
 class LaplacianMatrix : public CrtpExprBase<Device::CPU, LaplacianMatrix> {
 public:
@@ -126,6 +135,27 @@ public:
     for (int vid = 0; vid < mesh.num_verts(); ++vid) {
       mesh.vert(vid) =
           cinolib::vec3d(v.coeff(vid), v.coeff(vid + n), v.coeff(vid + 2 * n));
+    }
+  }
+};
+
+template <typename M = cinolib::Mesh_std_attributes,
+          typename V = cinolib::Vert_std_attributes,
+          typename E = cinolib::Edge_std_attributes,
+          typename Pf = cinolib::Polygon_std_attributes,
+          typename Pv = cinolib::Polyhedron_std_attributes>
+struct NormalSmoothFunctor {};
+
+class NormalSmooothEnergy
+    : public CrtpExprBase<Device::CPU, NormalSmooothEnergy> {
+
+  template <typename M, typename V, typename E, typename P>
+  static auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &surface,
+                   Eigen::Matrix3Xd &vertices, Eigen::Matrix3Xd &centeral_point,
+                   Eigen::Matrix3Xd &normals, Eigen::VectorXd &areas,
+                   Eigen::VectorXd &ns_energy) {
+    for (int i = 0; i < centeral_point.size(); ++i) {
+      double exp_wgt=Eigen::exp((centeral_point.colwise()-v).rowwise().norm()).cwiseProduct(areas)
     }
   }
 };

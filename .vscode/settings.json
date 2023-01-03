@@ -116,7 +116,8 @@
         "__debug": "cpp",
         "coroutine": "cpp",
         "string_view": "cpp",
-        "specialfunctions": "cpp"
+        "specialfunctions": "cpp",
+        "numericaldiff": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {

@@ -1,4 +1,5 @@
 #include "base.h"
+#include "solverbase.h"
 
 #include <eigen3/Eigen/Cholesky>
 #include <eigen3/Eigen/Dense>

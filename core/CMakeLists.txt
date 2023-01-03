@@ -21,5 +21,6 @@ target_sources(
         deformation.h
         transformation.h
         bfgs.h
+        solverbase.h
 )
 target_include_directories(HexerCore PUBLIC ${CMAKE_CURRENT_LIST_DIR})
