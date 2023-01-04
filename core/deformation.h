@@ -139,12 +139,65 @@ public:
   }
 };
 
+struct DeformationOptions {
+  double sigma = 0.01;
+};
+
 template <typename M = cinolib::Mesh_std_attributes,
           typename V = cinolib::Vert_std_attributes,
           typename E = cinolib::Edge_std_attributes,
           typename Pf = cinolib::Polygon_std_attributes,
           typename Pv = cinolib::Polyhedron_std_attributes>
 struct NormalSmoothFunctor {};
+
+class GaussianSmoothFacetNormals
+    : public CrtpExprBase<Device::CPU, GaussianSmoothFacetNormals> {
+public:
+  template <typename M, typename V, typename E, typename P>
+  static auto eval(const DeformationOptions &options, Eigen::Matrix3Xd &gsn,
+                   cinolib::AbstractPolygonMesh<M, V, E, P> &mesh) {
+    auto ns = mesh.vector_poly_normals();
+    Eigen::Matrix3Xd normals =
+        Eigen::Map<Eigen::Matrix3Xd>(ns.data(), 3, ns.size());
+
+    auto vs = mesh.verts();
+    Eigen::Matrix3Xd vertices =
+        Eigen::Map<Eigen::Matrix3Xd>(vs.data(), 3, vs.size());
+    Eigen::Matrix3Xd poly_center;
+    poly_center.resize(3, mesh.num_polys());
+
+    Eigen::VectorXd area;
+    area.resize(mesh.num_polys());
+    for (int fid = 0; fid < mesh.num_polys(); ++fid)
+      area.coeffRef(fid) = mesh.poly_area(fid);
+
+    cinolib::vec3d vp{0, 0, 0};
+    for (int fid = 0; fid < mesh.num_polys(); ++fid) {
+      auto vf = mesh.poly_verts(fid);
+      for (int i = 0; i < vf.size(); ++i)
+        vp = vp + vf[i];
+      vp = 1.0 / vf.size() * vp;
+
+      poly_center.coeffRef(0, fid) = vp[0];
+      poly_center.coeffRef(1, fid) = vp[1];
+      poly_center.coeffRef(2, fid) = vp[2];
+    }
+
+    gsn.resize(3, mesh.num_polys());
+
+    for (int fid = 0; fid < mehs.num_poys(); ++fid) {
+      gsn.col(fid) = normals.rowwise()
+                         .cwiseProduct(area.transpose().cwiseProduct(Eigen::exp(
+                             (-1.0 / std::pow(options.sigma, 2)) *
+                             (poly_center.colwise() - poly_center.col(fid))
+                                 .colwise()
+                                 .norm())))
+                         .rowwise()
+                         .sum();
+    }
+    return gsn;
+  }
+};
 
 class NormalSmooothEnergy
     : public CrtpExprBase<Device::CPU, NormalSmooothEnergy> {
@@ -155,7 +208,9 @@ class NormalSmooothEnergy
                    Eigen::Matrix3Xd &normals, Eigen::VectorXd &areas,
                    Eigen::VectorXd &ns_energy) {
     for (int i = 0; i < centeral_point.size(); ++i) {
-      double exp_wgt=Eigen::exp((centeral_point.colwise()-v).rowwise().norm()).cwiseProduct(areas)
+      double exp_wgt =
+          Eigen::exp((centeral_point.colwise() - v).rowwise().norm())
+              .cwiseProduct(areas)
     }
   }
 };
