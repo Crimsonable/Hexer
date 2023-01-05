@@ -11,8 +11,8 @@ enum class MeshType { Triangle = 3, Quads = 4 };
 
 template <Device device, typename T> struct MemoryManager;
 
-template <Device device, typename Derived, typename ParamTuple = std::tuple<>>
+template <Device device,
+          template <Device device, typename ParamListTp> class Derived,
+          typename ParamTuple = std::tuple<>>
 class CrtpExprBase;
-template <Device device, typename Alloctor, typename EleDataType> class OpBase;
-
 } // namespace Hexer

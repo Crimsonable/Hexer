@@ -18,12 +18,6 @@ concept ConceptTuple = requires { std::tuple_size_v<T>; };
 
 template <typename Type> struct traits;
 
-template <Device device, typename Alloctor, typename EleDataType>
-struct traits<OpBase<device, Alloctor, EleDataType>> {
-  using _Alloctor = Alloctor;
-  using _EleDataType = EleDataType;
-};
-
 template <typename Ret, typename Class, typename... Args>
 struct traits<Ret (Class::*)(Args...)> {
   static constexpr int param_size = sizeof...(Args);

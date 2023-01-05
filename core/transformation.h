@@ -117,8 +117,9 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
   std::vector<cinolib::vec3d> _normals;
 };
 
+template <Device device, typename ParamTuple = std::tuple<>>
 class GlobalOrientationAlign
-    : public CrtpExprBase<Device::CPU, GlobalOrientationAlign> {
+    : public CrtpExprBase<device, GlobalOrientationAlign, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(cinolib::AbstractMesh<M, V, E, P> &mesh) {
@@ -126,8 +127,6 @@ public:
     GlobalOrientationAlignFunctor functor(mesh);
     BFGS<decltype(functor)> solver(functor);
     auto info = solver.solve(euler);
-
-    Eigen::LevenbergMarquardtSpace<
 
     Eigen::AngleAxisd rotation;
     rotation.fromRotationMatrix(EulerToRotationMatrix(euler));

@@ -73,7 +73,9 @@ public:
 };
 
 // caculate Laplacian matrix using given method(cotangent,uniform)
-class LaplacianMatrix : public CrtpExprBase<Device::CPU, LaplacianMatrix> {
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class LaplacianMatrix
+    : public CrtpExprBase<Device::CPU, LaplacianMatrix, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const LaplacianOptions &options,
@@ -106,7 +108,9 @@ public:
   }
 };
 
-class LaplacianSmoother : public CrtpExprBase<Device::CPU, LaplacianSmoother> {
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class LaplacianSmoother
+    : public CrtpExprBase<device, LaplacianSmoother, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const LaplacianOptions &options,
@@ -129,7 +133,7 @@ public:
       v -= options.lambda * Laplacian * v;
       if (options.method == SmoothMethod::COTANGENT)
         Laplacian =
-            std::move(std::get<1>(LaplacianMatrix::eval(options, mesh)));
+            std::move(std::get<1>(LaplacianMatrix<>::eval(options, mesh)));
     }
 
     for (int vid = 0; vid < mesh.num_verts(); ++vid) {
@@ -150,11 +154,12 @@ template <typename M = cinolib::Mesh_std_attributes,
           typename Pv = cinolib::Polyhedron_std_attributes>
 struct NormalSmoothFunctor {};
 
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GaussianSmoothFacetNormals
-    : public CrtpExprBase<Device::CPU, GaussianSmoothFacetNormals> {
+    : public CrtpExprBase<device, GaussianSmoothFacetNormals, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
-  static auto eval(const DeformationOptions &options, Eigen::Matrix3Xd &gsn,
+  static auto eval(const DeformationOptions &options,
                    cinolib::AbstractPolygonMesh<M, V, E, P> &mesh) {
     auto ns = mesh.vector_poly_normals();
     Eigen::Matrix3Xd normals =
@@ -183,9 +188,10 @@ public:
       poly_center.coeffRef(2, fid) = vp[2];
     }
 
+    Eigen::Matrix3Xd gsn;
     gsn.resize(3, mesh.num_polys());
 
-    for (int fid = 0; fid < mehs.num_poys(); ++fid) {
+    for (int fid = 0; fid < mesh.num_poys(); ++fid) {
       gsn.col(fid) = normals.rowwise()
                          .cwiseProduct(area.transpose().cwiseProduct(Eigen::exp(
                              (-1.0 / std::pow(options.sigma, 2)) *
@@ -199,8 +205,9 @@ public:
   }
 };
 
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class NormalSmooothEnergy
-    : public CrtpExprBase<Device::CPU, NormalSmooothEnergy> {
+    : public CrtpExprBase<device, NormalSmooothEnergy, ParamTuple> {
 
   template <typename M, typename V, typename E, typename P>
   static auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &surface,
@@ -209,8 +216,10 @@ class NormalSmooothEnergy
                    Eigen::VectorXd &ns_energy) {
     for (int i = 0; i < centeral_point.size(); ++i) {
       double exp_wgt =
-          Eigen::exp((centeral_point.colwise() - v).rowwise().norm())
-              .cwiseProduct(areas)
+          Eigen::exp((centeral_point.colwise() - centeral_point.col(i))
+                         .rowwise()
+                         .norm())
+              .cwiseProduct(areas);
     }
   }
 };

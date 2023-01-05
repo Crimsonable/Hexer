@@ -2,19 +2,19 @@
 #include "expr.h"
 
 #include <Eigen/SparseCore>
-#include <vector>
 #include <cinolib/meshes/meshes.h>
+#include <vector>
 
 namespace Hexer {
 
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class Convert2SurfaceMesh
-    : public CrtpExprBase<Device::CPU, Convert2SurfaceMesh> {
+    : public CrtpExprBase<device, Convert2SurfaceMesh, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename F, typename P1,
             typename P2>
-  static void
-  eval(cinolib::AbstractPolygonMesh<M, V, E, P1> &surface,
-       const cinolib::AbstractPolyhedralMesh<M, V, E, F, P2> &mesh) {
+  void eval(cinolib::AbstractPolygonMesh<M, V, E, P1> &surface,
+            const cinolib::AbstractPolyhedralMesh<M, V, E, F, P2> &mesh) {
     std::vector<cinolib::vec3d> vertices_coords;
     std::vector<std::vector<uint>> faces;
     std::map<uint, uint> vertices_map;

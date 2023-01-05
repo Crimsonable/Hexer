@@ -43,20 +43,28 @@ HEXER_INLINE auto tuple_eval(ParamTuple &&tp, Args &&...args) {
       std::forward<Args>(args)...);
 }
 
-template <Device device, typename Derived, typename ParamTuple>
+template <Device device,
+          template <Device device, typename ParamListTp> class Derived,
+          typename ParamTuple>
 class CrtpExprBase {
+
+  using _Derived = Derived<device, ParamTuple>;
+
 public:
   std::remove_reference_t<ParamTuple> _args;
 
 public:
   template <typename ArgsTuple, size_t... I>
-  auto execute_helper(const std::index_sequence<I...> &,
-                      ArgsTuple &&args_tuple) {
-    return Derived::eval(
-        std::forward<std::tuple_element_t<I,
-        std::remove_cvref_t<ArgsTuple>>>(
+  HEXER_INLINE auto execute_helper(const std::index_sequence<I...> &,
+                                   ArgsTuple &&args_tuple) {
+    // return Derived::eval(
+    //     std::forward<std::tuple_element_t<I,
+    //     std::remove_cvref_t<ArgsTuple>>>(
+    //         std::get<I>(args_tuple))...);
+    // return Derived::eval(std::get<I>(args_tuple)...);
+    return derived()->eval(
+        std::forward<std::tuple_element_t<I, std::remove_cvref_t<ArgsTuple>>>(
             std::get<I>(args_tuple))...);
-    //return Derived::eval(std::get<I>(args_tuple)...);
   }
 
 public:
@@ -64,11 +72,14 @@ public:
 
   CrtpExprBase(ParamTuple &params) : _args(std::move(params)) {}
 
-  Derived *cast_to() { return static_cast<Derived *>(this); }
-
   static void ExprFeature() {}
 
   constexpr bool check() { return Meta::CheckExprInTuple(_args); }
+
+  HEXER_INLINE
+  Derived<device, ParamTuple> *derived() {
+    return static_cast<Derived<device, ParamTuple> *>(this);
+  }
 
   template <typename... Args> auto execute(Args &&...args) {
     if constexpr (std::tuple_size<ParamTuple>::value &&
@@ -105,7 +116,7 @@ public:
     //     std::tuple_size_v<decltype(new_args)> <=
     //         Meta::traits<decltype(&Derived::template eval)>::param_size,
     //     "parameters oversize.");
-    return CrtpExprBase<device, Derived, decltype(new_args)>(new_args);
+    return Derived<device, decltype(new_args)>(new_args);
   }
 
   template <Meta::ConceptExpr Expr> auto operator|(Expr &&exp) {
@@ -113,19 +124,8 @@ public:
   }
 };
 
-template <Device device, typename Alloctor, typename EleDataType>
-class OpBase
-    : public CrtpExprBase<device, OpBase<device, Alloctor, EleDataType>> {
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class OpBase : public CrtpExprBase<device, OpBase, ParamTuple> {
 public:
 };
-
-template <Device device, typename ContainerT>
-class Stream : public CrtpExprBase<device, Stream<device, ContainerT>,
-                                   std::tuple<ContainerT>> {
-public:
-  Stream(ContainerT &&data)
-      : CrtpExprBase<device, Stream<device, ContainerT>,
-                     std::tuple<ContainerT>>(std::tuple<ContainerT>{data}) {}
-};
-
 } // namespace Hexer
