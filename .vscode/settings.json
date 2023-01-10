@@ -117,7 +117,11 @@
         "coroutine": "cpp",
         "string_view": "cpp",
         "specialfunctions": "cpp",
-        "numericaldiff": "cpp"
+        "numericaldiff": "cpp",
+        "__bit_reference": "cpp",
+        "__functional_base": "cpp",
+        "__split_buffer": "cpp",
+        "memory_resource": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {

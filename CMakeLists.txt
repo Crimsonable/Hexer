@@ -46,5 +46,9 @@ add_executable(GlobalOrientation "")
 target_link_libraries(GlobalOrientation PRIVATE HexerCore)
 add_subdirectory("./hexer/globalOrientation")
 
+add_executable (SmoothEnergy "")
+target_link_libraries(SmoothEnergy PRIVATE HexerCore)
+add_subdirectory("./hexer/GaussianSmoothFacetNormals")
+
 #add_subdirectory(hexer)
 #add_subdirectory(visual)

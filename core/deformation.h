@@ -154,6 +154,19 @@ template <typename M = cinolib::Mesh_std_attributes,
           typename Pv = cinolib::Polyhedron_std_attributes>
 struct NormalSmoothFunctor {};
 
+template <typename M, typename V, typename E, typename P>
+inline auto poly_centroid(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
+                          uint fid) {
+  auto tmp = mesh.poly_centroid(fid);
+  Eigen::Vector3d p;
+
+  p(0) = tmp[0];
+  p(1) = tmp[1];
+  p(2) = tmp[2];
+
+  return p;
+}
+
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GaussianSmoothFacetNormals
     : public CrtpExprBase<device, GaussianSmoothFacetNormals, ParamTuple> {
@@ -161,49 +174,61 @@ public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const DeformationOptions &options,
                    cinolib::AbstractPolygonMesh<M, V, E, P> &mesh) {
-    auto ns = mesh.vector_poly_normals();
-    Eigen::Matrix3Xd normals =
-        Eigen::Map<Eigen::Matrix3Xd>(ns.data(), 3, ns.size());
+    std::vector<cinolib::vec3d> ns = mesh.vector_poly_normals();
 
-    auto vs = mesh.verts();
-    Eigen::Matrix3Xd vertices =
-        Eigen::Map<Eigen::Matrix3Xd>(vs.data(), 3, vs.size());
-    Eigen::Matrix3Xd poly_center;
-    poly_center.resize(3, mesh.num_polys());
+    Eigen::Matrix3Xd normals =
+        Eigen::Map<Eigen::Matrix3Xd>(ns.data()->ptr(), 3, ns.size());
+
+    Eigen::Matrix3Xd poly_centers;
+    poly_centers.resize(3, mesh.num_polys());
 
     Eigen::VectorXd area;
     area.resize(mesh.num_polys());
-    for (int fid = 0; fid < mesh.num_polys(); ++fid)
-      area.coeffRef(fid) = mesh.poly_area(fid);
-
-    cinolib::vec3d vp{0, 0, 0};
     for (int fid = 0; fid < mesh.num_polys(); ++fid) {
-      auto vf = mesh.poly_verts(fid);
-      for (int i = 0; i < vf.size(); ++i)
-        vp = vp + vf[i];
-      vp = 1.0 / vf.size() * vp;
-
-      poly_center.coeffRef(0, fid) = vp[0];
-      poly_center.coeffRef(1, fid) = vp[1];
-      poly_center.coeffRef(2, fid) = vp[2];
+      area.coeffRef(fid) = mesh.poly_area(fid);
+      poly_centers.col(fid) = poly_centroid(mesh, fid);
     }
 
     Eigen::Matrix3Xd gsn;
     gsn.resize(3, mesh.num_polys());
 
-    for (int fid = 0; fid < mesh.num_poys(); ++fid) {
-      gsn.col(fid) = normals.rowwise()
-                         .cwiseProduct(area.transpose().cwiseProduct(Eigen::exp(
-                             (-1.0 / std::pow(options.sigma, 2)) *
-                             (poly_center.colwise() - poly_center.col(fid))
-                                 .colwise()
-                                 .norm())))
+    for (int fid = 0; fid < mesh.num_polys(); ++fid) {
+      auto poly_center_minus =
+          -0.5 / std::pow(options.sigma, 2) *
+          (poly_centers.colwise() - poly_centers.col(fid)).colwise().norm();
+      auto exp_sigma =
+          area.transpose().array() * Eigen::exp(poly_center_minus.array());
+      gsn.col(fid) = (normals.array().rowwise() * exp_sigma)
                          .rowwise()
-                         .sum();
+                         .sum()
+                         .matrix()
+                         .transpose();
     }
     return gsn;
   }
 };
+
+template <typename M, typename V, typename E, typename P>
+auto GaussianSmoothFacetNormals_naive(
+    cinolib::AbstractPolygonMesh<M, V, E, P> &mesh) {
+  Eigen::Matrix3Xd gsn;
+  gsn.resize(3, mesh.num_polys());
+  auto ns = mesh.vector_poly_normals();
+
+  for (uint fid = 0; fid < mesh.num_polys(); ++fid) {
+    cinolib::vec3d n{0, 0, 0};
+    Eigen::Vector3d p = poly_centroid(mesh, fid);
+    for (uint fid2 = 0; fid2 < mesh.num_polys(); ++fid2) {
+      Eigen::Vector3d p2 = poly_centroid(mesh, fid);
+      n = n +
+          mesh.poly_area(fid2) * std::exp(-0.5 * (p2 - p).norm()) * ns[fid2];
+    }
+    gsn.col(fid).coeffRef(0) = n[0];
+    gsn.col(fid).coeffRef(1) = n[1];
+    gsn.col(fid).coeffRef(2) = n[2];
+  }
+  return gsn;
+}
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class NormalSmooothEnergy
@@ -213,14 +238,6 @@ class NormalSmooothEnergy
   static auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &surface,
                    Eigen::Matrix3Xd &vertices, Eigen::Matrix3Xd &centeral_point,
                    Eigen::Matrix3Xd &normals, Eigen::VectorXd &areas,
-                   Eigen::VectorXd &ns_energy) {
-    for (int i = 0; i < centeral_point.size(); ++i) {
-      double exp_wgt =
-          Eigen::exp((centeral_point.colwise() - centeral_point.col(i))
-                         .rowwise()
-                         .norm())
-              .cwiseProduct(areas);
-    }
-  }
+                   Eigen::VectorXd &ns_energy) {}
 };
 } // namespace Hexer

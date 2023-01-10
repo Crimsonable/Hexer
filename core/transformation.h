@@ -117,7 +117,7 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
   std::vector<cinolib::vec3d> _normals;
 };
 
-template <Device device, typename ParamTuple = std::tuple<>>
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GlobalOrientationAlign
     : public CrtpExprBase<device, GlobalOrientationAlign, ParamTuple> {
 public:
