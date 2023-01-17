@@ -2,6 +2,16 @@
 #define HEXER_LOG
 #define HEXER_INLINE __forceinline
 
+#ifdef __DEBUG
+    #include <chrono>
+    #define HEXER_TIMER(func) \
+    auto t1=std::chrono::steady_clock::now();
+    func;
+    auto t2=std::chrono::steady_clock::now();
+    
+
+#endif
+
 namespace Hexer {
 using uint = unsigned int;
 using ID = size_t;
