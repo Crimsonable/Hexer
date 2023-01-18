@@ -168,6 +168,29 @@ inline auto poly_centroid(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
 }
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class GaussianDistanceWeight
+    : public CrtpExprBase<device, GaussianDistanceWeight, ParamTuple> {
+public:
+  auto eval(const Eigen::Matrix3Xd &normals, const Eigen::Matrix3Xd &centers,
+            const Eigen::VectorXd &areas, double sigma, uint fid) {
+    Eigen::Vector3d gn{0, 0, 0};
+
+    auto poly_center_minus =
+        -0.5 / std::pow(sigma, 2) *
+        (centers.colwise() - centers.col(fid)).colwise().norm();
+    auto exp_distance =
+        areas.array().transpose() * Eigen::exp(poly_center_minus.array());
+    gn += (normals.array().rowwise() * exp_distance)
+              .rowwise()
+              .sum()
+              .matrix()
+              .transpose();
+
+    return gn;
+  }
+};
+
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GaussianSmoothFacetNormals
     : public CrtpExprBase<device, GaussianSmoothFacetNormals, ParamTuple> {
 public:
@@ -192,17 +215,11 @@ public:
     Eigen::Matrix3Xd gsn;
     gsn.resize(3, mesh.num_polys());
 
+    auto gaussian_weighter =
+        GaussianDistanceWeight()(normals, poly_centers, area, options.sigma);
+
     for (int fid = 0; fid < mesh.num_polys(); ++fid) {
-      auto poly_center_minus =
-          -0.5 / std::pow(options.sigma, 2) *
-          (poly_centers.colwise() - poly_centers.col(fid)).colwise().norm();
-      auto exp_sigma =
-          area.transpose().array() * Eigen::exp(poly_center_minus.array());
-      gsn.col(fid) = (normals.array().rowwise() * exp_sigma)
-                         .rowwise()
-                         .sum()
-                         .matrix()
-                         .transpose();
+      gsn.col(fid) = gaussian_weighter.execute(fid);
     }
     return gsn;
   }

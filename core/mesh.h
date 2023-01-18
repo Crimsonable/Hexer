@@ -19,6 +19,7 @@ public:
     std::vector<std::vector<uint>> faces;
     std::map<uint, uint> vertices_map;
 
+#pragma omp parallel for schedule(dynamic)
     for (uint fid = 0; fid < mesh.num_faces(); ++fid) {
       if (mesh.face_is_on_srf(fid)) {
         auto vids = mesh.face_verts_id(fid);

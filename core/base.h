@@ -1,16 +1,22 @@
 #pragma once
 #define HEXER_LOG
 #define HEXER_INLINE __forceinline
-
 #ifdef __DEBUG
-    #include <chrono>
-    #define HEXER_TIMER(func) \
-    auto t1=std::chrono::steady_clock::now();
-    func;
-    auto t2=std::chrono::steady_clock::now();
-    
+#include <chrono>
+#include <spdlog/spdlog.h>
 
+template <typename Functor> void hexer_timer(Functor &&f, const char *desc) {
+  auto t1 = std::chrono::steady_clock::now();
+  f();
+  auto t2 = std::chrono::steady_clock::now();
+  spdlog::info(
+      "Total time cost: {:03.5f}ms",
+      double(std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
+                 .count()));
+}
 #endif
+
+#include <omp.h>
 
 namespace Hexer {
 using uint = unsigned int;

@@ -125,7 +125,7 @@
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {
-        //"CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        "CMAKE_TOOLCHAIN_FILE": "A:/buildTools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        //"CMAKE_TOOLCHAIN_FILE": "A:/buildTools/vcpkg/scripts/buildsystems/vcpkg.cmake"
     }
 }

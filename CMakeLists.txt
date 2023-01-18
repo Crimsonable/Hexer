@@ -2,12 +2,12 @@
 
 project ("Hexer")
 
-set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
-#set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
+#set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
+set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
 #set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
 #set(OpenVolumeMesh_DIR "D:/codes/OVM/lib/cmake/OpenVolumeMesh")
-set(cinolib_DIR "A:/MeshGeneration/cinolib")
-#set(cinolib_DIR "D:/codes/cinolib")
+#set(cinolib_DIR "A:/MeshGeneration/cinolib")
+set(cinolib_DIR "D:/codes/cinolib")
 
 add_definitions(-D_USE_MATH_DEFINES)
 set(CINOLIB_USES_OPENGL_GLFW_IMGUI ON)
@@ -28,7 +28,15 @@ include_directories(
 link_directories(
 	${OPENVOLUMNMESH_PATH_LIB}
 )
+
+add_compile_options("/openmp")
 add_compile_options("/bigobj")
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+	message("Using Debug Mode")
+	add_compile_definitions(__DEBUG)
+endif()
+
+
 
 add_library(HexerCore STATIC "")
 target_link_libraries(HexerCore PUBLIC Eigen3::Eigen)
