@@ -179,20 +179,15 @@ public:
         -0.5 / std::pow(sigma, 2) *
         (centers.colwise() - centers.col(fid)).colwise().norm();
 
-    std::cout << "minus: \n" << poly_center_minus.eval() << std::endl;
-
     auto exp_distance =
         areas.array().transpose() * Eigen::exp(poly_center_minus.array());
-
-    std::cout << "exp: \n" << exp_distance.eval() << std::endl;
 
     gn += (normals.array().rowwise() * exp_distance)
               .rowwise()
               .sum()
               .matrix()
               .transpose();
-    std::cout << gn << std::endl;
-
+gn.eval()
     return gn;
   }
 };
@@ -225,9 +220,9 @@ public:
     auto gaussian_weighter =
         GaussianDistanceWeight()(normals, poly_centers, area, options.sigma);
 
-    for (int fid = 0; fid < mesh.num_polys(); ++fid) {
+    for (int fid = 0; fid < mesh.num_polys(); ++fid) 
       gsn.col(fid) = gaussian_weighter.execute(fid);
-    }
+    
     return gsn;
   }
 };
