@@ -20,7 +20,7 @@ auto build_test_cube() {
   // auto e1 = mesh.edge_add(v4, v1);
   // auto e1 = mesh.edge_add(v1, v3);
 
-  auto p1 = mesh.poly_add({v1, v2, v3});
+  auto p1 = mesh.poly_add({v1, v3, v2});
   auto p2 = mesh.poly_add({v3, v4, v1});
   mesh.update_bbox();
   mesh.init_drawable_stuff();

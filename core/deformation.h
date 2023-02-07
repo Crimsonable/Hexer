@@ -187,7 +187,6 @@ public:
               .sum()
               .matrix()
               .transpose();
-gn.eval()
     return gn;
   }
 };
@@ -214,15 +213,18 @@ public:
       poly_centers.col(fid) = poly_centroid(mesh, fid);
     }
 
-    Eigen::Matrix3Xd gsn;
-    gsn.resize(3, mesh.num_polys());
+    Eigen::Matrix3Xd gsn = Eigen::Matrix3Xd::Zero(3, mesh.num_polys());
 
     auto gaussian_weighter =
         GaussianDistanceWeight()(normals, poly_centers, area, options.sigma);
 
-    for (int fid = 0; fid < mesh.num_polys(); ++fid) 
-      gsn.col(fid) = gaussian_weighter.execute(fid);
-    
+    Eigen::Index _idx;
+    for (int fid = 0; fid < mesh.num_polys(); ++fid) {
+      Eigen::Vector3d _v = gaussian_weighter.execute(fid);
+      _v.cwiseAbs().maxCoeff(&_idx);
+      gsn.col(fid).coeffRef(_idx) = std::signbit(_v.coeff(_idx)) ? -1.0f : 1.0f;
+    }
+
     return gsn;
   }
 };
