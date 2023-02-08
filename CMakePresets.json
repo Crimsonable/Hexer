@@ -35,7 +35,7 @@
         {
             "name": "x64-release",
             "displayName": "x64 Release",
-            "inherits": "x64-debug",
+            "inherits": "windows-base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }

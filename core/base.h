@@ -1,7 +1,7 @@
 #pragma once
 #define HEXER_LOG
 #define HEXER_INLINE __forceinline
-#ifdef __DEBUG
+
 #include <chrono>
 #include <spdlog/spdlog.h>
 
@@ -14,7 +14,6 @@ template <typename Functor> void hexer_timer(Functor &&f, const char *desc) {
       double(std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
                  .count()));
 }
-#endif
 
 #include <omp.h>
 

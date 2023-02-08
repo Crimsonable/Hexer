@@ -1,5 +1,6 @@
 #include "bfgs.h"
 #include "expr.h"
+#include "threadpool.h"
 
 #include <Expblas/graph_funcs.h>
 #include <cinolib/meshes/meshes.h>
@@ -61,11 +62,15 @@ template <typename M = cinolib::Mesh_std_attributes,
           typename P = cinolib::Polygon_std_attributes>
 struct GlobalOrientationAlignFunctor : public Functor<double> {
   GlobalOrientationAlignFunctor(cinolib::AbstractMesh<M, V, E, P> &mesh)
-      : _mesh(mesh), Functor<double>(3, 1) {
+      : _mesh(mesh), Functor<double>(3, 1), _pool(3) {
     _normals = _mesh.vector_poly_normals();
     _Rn = Eigen::Matrix3Xd(3, _mesh.num_polys());
     _ERn = Eigen::Matrix3Xd(3, _mesh.num_polys());
+
+    _pool.init();
   }
+
+  ~GlobalOrientationAlignFunctor() { _pool.shutdown(); }
 
   int operator()(const Eigen::VectorXd &x, double &fvec) {
     Eigen::Matrix3d rotation = EulerToRotationMatrix(x);
@@ -95,17 +100,36 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
     Eigen::VectorXd coeffs2 =
         Eigen::Map<Eigen::VectorXd>(_ERn.data(), _normals.size());
 
-    coeffs2 =
-        (dfRotationTheta_x(x[0], x[1], x[2]) * n).colwise().sum().transpose();
-    fjac[0] = coeffs.cwiseProduct(coeffs2).sum();
+    auto future1 = _pool.submit([&]() {
+      fjac[0] = coeffs
+                    .cwiseProduct((dfRotationTheta_x(x[0], x[1], x[2]) * n)
+                                      .colwise()
+                                      .sum()
+                                      .transpose())
+                    .sum();
+    });
 
-    coeffs2 =
-        (dfRotationTheta_y(x[0], x[1], x[2]) * n).colwise().sum().transpose();
-    fjac[1] = coeffs.cwiseProduct(coeffs2).sum();
+    auto future2 = _pool.submit([&]() {
+      fjac[1] = coeffs
+                    .cwiseProduct((dfRotationTheta_y(x[0], x[1], x[2]) * n)
+                                      .colwise()
+                                      .sum()
+                                      .transpose())
+                    .sum();
+    });
 
-    coeffs2 =
-        (dfRotationTheta_z(x[0], x[1], x[2]) * n).colwise().sum().transpose();
-    fjac[2] = coeffs.cwiseProduct(coeffs2).sum();
+    auto future3 = _pool.submit([&]() {
+      fjac[2] = coeffs
+                    .cwiseProduct((dfRotationTheta_z(x[0], x[1], x[2]) * n)
+                                      .colwise()
+                                      .sum()
+                                      .transpose())
+                    .sum();
+    });
+
+    future1.get();
+    future2.get();
+    future3.get();
 
     return 0;
   }
@@ -115,6 +139,8 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
   Eigen::Matrix3Xd _ERn;
   cinolib::AbstractMesh<M, V, E, P> &_mesh;
   std::vector<cinolib::vec3d> _normals;
+
+  ThreadPool _pool;
 };
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>

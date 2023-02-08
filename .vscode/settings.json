@@ -121,7 +121,9 @@
         "__bit_reference": "cpp",
         "__functional_base": "cpp",
         "__split_buffer": "cpp",
-        "memory_resource": "cpp"
+        "memory_resource": "cpp",
+        "__node_handle": "cpp",
+        "hash_map": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {
