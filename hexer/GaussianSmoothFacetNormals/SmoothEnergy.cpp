@@ -6,6 +6,7 @@
 
 #include "core/deformation.h"
 #include "core/transformation.h"
+#include "test_utility.h"
 
 auto build_test_cube() {
   cinolib::DrawablePolygonmesh<> mesh;
@@ -33,6 +34,15 @@ void applyColorByGauassianNormal(cinolib::DrawableTrimesh<> &mesh,
 }
 
 int main() {
+  auto mesh = SphereGen(1);
+  mesh.init_drawable_stuff();
+  mesh.updateGL();
+  cinolib::GLcanvas gui;
+  gui.push(&mesh);
+  return gui.launch();
+}
+
+int main0() {
   cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
   mesh.update_bbox();
   // auto surface_mesh = build_test_cube();
