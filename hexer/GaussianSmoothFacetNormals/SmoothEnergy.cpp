@@ -34,11 +34,14 @@ void applyColorByGauassianNormal(cinolib::DrawableTrimesh<> &mesh,
 }
 
 int main() {
-  auto mesh = SphereGen(1);
-  mesh.init_drawable_stuff();
-  mesh.updateGL();
+  auto mesh = unitOctahedron();
+  cinolib::DrawablePolygonmesh<> dmesh(mesh.vector_verts(),
+                                       mesh.vector_polys());
+
+  dmesh.init_drawable_stuff();
+  dmesh.updateGL();
   cinolib::GLcanvas gui;
-  gui.push(&mesh);
+  gui.push(&dmesh);
   return gui.launch();
 }
 
