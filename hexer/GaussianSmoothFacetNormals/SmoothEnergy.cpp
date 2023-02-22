@@ -4,8 +4,7 @@
 #include <cinolib/gl/glcanvas.h>
 #include <cinolib/meshes/meshes.h>
 
-#include "core/deformation.h"
-#include "core/transformation.h"
+#include <core/hexer_core.h>
 #include "test_utility.h"
 
 auto build_test_cube() {
