@@ -4,6 +4,8 @@
 #include "mesh.h"
 
 #include <cinolib/meshes/meshes.h>
+#include <execution>
+#include <numeric>
 
 namespace Hexer {
 enum class SmoothMethod { UNIFORM, COTANGENT };

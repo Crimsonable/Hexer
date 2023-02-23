@@ -19,6 +19,7 @@ find_package(Eigen3 CONFIG REQUIRED)
 find_package(cinolib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+find_package(range-v3 CONFIG REQUIRED)
 
 include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}
@@ -44,6 +45,7 @@ target_link_libraries(HexerCore PUBLIC cinolib)
 target_link_libraries(HexerCore PUBLIC glfw)
 target_link_libraries(HexerCore PUBLIC OpenGL32.lib)
 target_link_libraries(HexerCore PUBLIC spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(HexerCore PUBLIC range-v3 range-v3-meta range-v3::meta range-v3-concepts)
 add_subdirectory(core)
 
 add_executable (Smoother "")

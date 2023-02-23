@@ -16,6 +16,7 @@ inline Eigen::Matrix3d EulerToRotationMatrix(const Eigen::VectorXd &euler) {
   return (yaw_angle * pitch_angle * roll_angle).toRotationMatrix();
 }
 
+// derivative of Euler rotation matrix
 inline Eigen::Matrix3d dfRotationTheta_x(double x, double y, double z) {
   double sx = std::sin(x);
   double cx = std::cos(x);
@@ -72,6 +73,7 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
 
   ~GlobalOrientationAlignFunctor() { _pool.shutdown(); }
 
+  // target function: f(n)=nx*ny+nx*nz+ny*nz
   int operator()(const Eigen::VectorXd &x, double &fvec) {
     Eigen::Matrix3d rotation = EulerToRotationMatrix(x);
     Eigen::Matrix3Xd Rn = Eigen::Map<Eigen::Matrix3Xd>(_normals.data()->ptr(),
