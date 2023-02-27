@@ -6,6 +6,7 @@
 
 #include <core/hexer_core.h>
 #include "test_utility.h"
+#include <core/tessellation.h>
 
 auto build_test_cube() {
   cinolib::DrawablePolygonmesh<> mesh;
@@ -33,7 +34,7 @@ void applyColorByGauassianNormal(cinolib::DrawableTrimesh<> &mesh,
 }
 
 int main() {
-  auto mesh = unitOctahedron();
+  auto mesh = Hexer::LoopSubdivision()(unitOctahedron()).execute();
   cinolib::DrawablePolygonmesh<> dmesh(mesh.vector_verts(),
                                        mesh.vector_polys());
 
