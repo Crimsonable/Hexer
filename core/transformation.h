@@ -2,7 +2,7 @@
 #include "expr.h"
 #include "threadpool.h"
 
-#include <Expblas/graph_funcs.h>
+//#include <Expblas/graph_funcs.h>
 #include <cinolib/meshes/meshes.h>
 #include <eigen3/unsupported/Eigen/MatrixFunctions>
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>

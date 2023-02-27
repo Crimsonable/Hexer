@@ -5,6 +5,7 @@
 #include <range/v3/range/concepts.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/transform.hpp>
 
 namespace Hexer {
 // return connected and oppsite vertices of an edge, first 2 elements of the
@@ -59,10 +60,13 @@ public:
                                       ranges::views::all |
                                       ranges::view::enumerate)
         new_polys.push_back(
-            {vid, new_vertex_tmp[i], new_vertex_tmp[i % 3 - 1]});
+            {vid, new_vertex_tmp[i], new_vertex_tmp[(i+2)%3]});
     };
     return cinolib::Polygonmesh<M, V, E, P>(
-        ranges::view::concat(ori_mesh.vector_verts(), new_vertex) | ranges::transform_view([](auto& x){}), new_polys);
+        ranges::view::concat(ori_mesh.vector_verts(), new_vertex),
+        new_polys | ranges::view::transform([](const auto &x) {
+          return std::vector<uint>({x[0], x[1], x[2]});
+        }));
   }
 };
 
