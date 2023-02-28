@@ -2,10 +2,12 @@
 #include "expr.h"
 
 #include <cinolib/meshes/meshes.h>
+#include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/range/concepts.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/transform.hpp>
+#include <range/v3/view/take.hpp>
 
 namespace Hexer {
 // return connected and oppsite vertices of an edge, first 2 elements of the
@@ -60,7 +62,7 @@ public:
                                       ranges::views::all |
                                       ranges::view::enumerate)
         new_polys.push_back(
-            {vid, new_vertex_tmp[i], new_vertex_tmp[(i+2)%3]});
+            {vid, new_vertex_tmp[i], new_vertex_tmp[(i + 2) % 3]});
     };
     return cinolib::Polygonmesh<M, V, E, P>(
         ranges::view::concat(ori_mesh.vector_verts(), new_vertex),
@@ -74,8 +76,12 @@ template <typename M, typename V, typename E, typename P>
 auto vertexSample_Loop(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
                        int vid) {
   int count = mesh.adj_v2e(vid);
-ranges:
-  (mesh.adj_v2v(vid) | ranges::view::all);
+  double alpha = 0.625 - std::pow(0.375 + 0.25 * std::cos(2 * M_PI / count), 2);
+  auto view = mesh.adj_v2v(vid) | ranges::view::transform([](const auto &id) {
+                return mesh.vert(id);
+              });
+  return 0.5 * alpha / n * ranges::accumulate(view, cinolib::vec3d(0, 0, 0)) +
+         (0.5 - alpha) * mesh.vert(vid);
 }
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
@@ -83,7 +89,8 @@ class LoopAux_adjustVertex
     : public CrtpExprBase<device, LoopAux_adjustVertex, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
-  auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &ori_mesh) {}
+  auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh, uint n) {
+  }
 };
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
