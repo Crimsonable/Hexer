@@ -21,7 +21,7 @@ namespace Hexer {
 using uint = unsigned int;
 using ID = size_t;
 
-enum class Device { CPU, GPU };
+enum class Device { CPU = 1, GPU = 3 };
 enum class MeshType { Triangle = 3, Quads = 4 };
 
 template <Device device, typename T> struct MemoryManager;

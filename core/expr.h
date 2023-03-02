@@ -119,10 +119,16 @@ public:
     return Derived<device, decltype(new_args)>(new_args);
   }
 
-  template <Meta::ConceptExpr Expr> auto operator|(Expr &&exp) {
-    return exp(*this);
-  }
+  // template <Meta::ConceptExpr Expr> auto operator|(Expr &&exp) {
+  //   return exp(*this);
+  // }
 };
+
+template <typename Expr1, typename Expr2>
+  requires(Meta::ConceptExpr<Expr1> && Meta::ConceptExpr<Expr2>)
+auto operator|(Expr1 &&exp1, Expr2 &&exp2) {
+  return exp2(exp1);
+}
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class OpBase : public CrtpExprBase<device, OpBase, ParamTuple> {

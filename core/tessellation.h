@@ -6,8 +6,9 @@
 #include <range/v3/range/concepts.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/transform.hpp>
+#include <range/v3/view/iota.hpp>
 #include <range/v3/view/take.hpp>
+#include <range/v3/view/transform.hpp>
 
 namespace Hexer {
 // return connected and oppsite vertices of an edge, first 2 elements of the
@@ -38,7 +39,7 @@ public:
   auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &ori_mesh) {
     std::vector<int> edges_map(ori_mesh.num_edges(), -1);
     std::vector<cinolib::vec3d> new_vertex;
-    new_vertex.reserve(ori_mesh.num_edges() * 3);
+    new_vertex.reserve(ori_mesh.num_edges());
     std::vector<cinolib::vec3u> new_polys;
     new_polys.reserve(4 * ori_mesh.num_polys());
 
@@ -80,7 +81,8 @@ auto vertexSample_Loop(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
   auto view = mesh.adj_v2v(vid) | ranges::view::transform([](const auto &id) {
                 return mesh.vert(id);
               });
-  return 0.5 * alpha / n * ranges::accumulate(view, cinolib::vec3d(0, 0, 0)) +
+  return 0.5 * alpha / count *
+             ranges::accumulate(view, cinolib::vec3d(0, 0, 0)) +
          (0.5 - alpha) * mesh.vert(vid);
 }
 
@@ -89,7 +91,12 @@ class LoopAux_adjustVertex
     : public CrtpExprBase<device, LoopAux_adjustVertex, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
-  auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh, uint n) {
+  auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &&mesh, int n) {
+    for (const auto &vid : ranges::view::iota(n))
+      mesh.adj_v2v(vid) | ranges::view::transform([&](const auto &i) {
+        mesh.vert(i) = vertexSample_Loop(mesh, i);
+      });
+    return mesh;
   }
 };
 
@@ -99,7 +106,7 @@ class LoopSubdivision
 public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh) {
-    return LoopAux_addVertex()(mesh).execute();
+    return (LoopAux_addVertex()(mesh) | LoopAux_adjustVertex()).execute();
   }
 };
 } // namespace Hexer
