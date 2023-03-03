@@ -76,9 +76,9 @@ public:
 template <typename M, typename V, typename E, typename P>
 auto vertexSample_Loop(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
                        int vid) {
-  int count = mesh.adj_v2e(vid);
+  int count = mesh.adj_v2e(vid).size();
   double alpha = 0.625 - std::pow(0.375 + 0.25 * std::cos(2 * M_PI / count), 2);
-  auto view = mesh.adj_v2v(vid) | ranges::view::transform([](const auto &id) {
+  auto view = mesh.adj_v2v(vid) | ranges::view::transform([&](const auto &id) {
                 return mesh.vert(id);
               });
   return 0.5 * alpha / count *
@@ -92,10 +92,9 @@ class LoopAux_adjustVertex
 public:
   template <typename M, typename V, typename E, typename P>
   auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &&mesh, int n) {
-    for (const auto &vid : ranges::view::iota(n))
-      mesh.adj_v2v(vid) | ranges::view::transform([&](const auto &i) {
-        mesh.vert(i) = vertexSample_Loop(mesh, i);
-      });
+    for (const auto &vid : ranges::view::iota(n)) {
+      mesh.vert(vid) = vertexSample_Loop(mesh, vid);
+    }
     return mesh;
   }
 };
@@ -106,7 +105,9 @@ class LoopSubdivision
 public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh) {
-    return (LoopAux_addVertex()(mesh) | LoopAux_adjustVertex()).execute();
+    return (LoopAux_addVertex()(mesh) |
+            LoopAux_adjustVertex()(mesh.num_verts()))
+        .execute();
   }
 };
 } // namespace Hexer

@@ -14,7 +14,7 @@ concept ConceptNonExpr = !
 ConceptExpr<T>;
 
 template <typename T>
-concept ConceptTuple = requires { std::tuple_size_v<T>; };
+concept ConceptTuple = requires(T t) { std::get<0>(t); };
 
 template <typename Type> struct traits;
 

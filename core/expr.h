@@ -9,38 +9,30 @@ namespace Hexer {
 
 enum class MemPolicy { INPLACE, OUTPLACE };
 
-template <Meta::ConceptNonExpr T, typename... Args>
-HEXER_INLINE auto Eval(T &&val, Args &&...args) {
+template <Meta::ConceptNonExpr T> HEXER_INLINE auto Eval(T &&val) {
   return Meta::ref_helper(std::forward_as_tuple(val));
 }
 
-template <Meta::ConceptExpr T, typename... Args>
-HEXER_INLINE auto Eval(T &&expr, Args &&...args) {
-  if constexpr (Meta::ConceptTuple<decltype(expr.execute(
-                    std::forward<Args>(args)...))>)
-    return Meta::ref_helper(expr.execute(std::forward<Args>(args)...));
+template <Meta::ConceptExpr T> HEXER_INLINE auto Eval(T &&expr) {
+  static_assert(!Meta::ConceptTuple<decltype(expr.execute())>, "nmb");
+  if constexpr (Meta::ConceptTuple<decltype(expr.execute())>)
+    return Meta::ref_helper(expr.execute());
   else
-    return Meta::ref_helper(
-        std::forward_as_tuple(expr.execute(std::forward<Args>(args)...)));
+    return Meta::ref_helper(std::forward_as_tuple(expr.execute()));
 }
 
-template <typename ParamTuple, size_t... I, typename... Args>
+template <typename ParamTuple, size_t... I>
 HEXER_INLINE auto tuple_eval_impl(ParamTuple &&tp,
-                                  const std::index_sequence<I...> &,
-                                  Args &&...args) {
+                                  const std::index_sequence<I...> &) {
   return std::tuple_cat(Eval(
       std::forward<std::tuple_element_t<I, std::remove_cvref_t<ParamTuple>>>(
-          std::get<I>(tp)),
-      std::forward<Args>(args)...)...);
+          std::get<I>(tp)))...);
 }
 
-template <typename ParamTuple, typename... Args>
-HEXER_INLINE auto tuple_eval(ParamTuple &&tp, Args &&...args) {
+template <typename ParamTuple> HEXER_INLINE auto tuple_eval(ParamTuple &&tp) {
   return tuple_eval_impl(
-      tp,
-      std::make_index_sequence<
-          std::tuple_size_v<std::remove_cvref_t<ParamTuple>>>{},
-      std::forward<Args>(args)...);
+      tp, std::make_index_sequence<
+              std::tuple_size_v<std::remove_cvref_t<ParamTuple>>>{});
 }
 
 template <Device device,
@@ -57,11 +49,6 @@ public:
   template <typename ArgsTuple, size_t... I>
   HEXER_INLINE auto execute_helper(const std::index_sequence<I...> &,
                                    ArgsTuple &&args_tuple) {
-    // return Derived::eval(
-    //     std::forward<std::tuple_element_t<I,
-    //     std::remove_cvref_t<ArgsTuple>>>(
-    //         std::get<I>(args_tuple))...);
-    // return Derived::eval(std::get<I>(args_tuple)...);
     return derived()->eval(
         std::forward<std::tuple_element_t<I, std::remove_cvref_t<ArgsTuple>>>(
             std::get<I>(args_tuple))...);
@@ -88,9 +75,9 @@ public:
       //                          tuple_eval(_args,
       //                          std::forward<Args>(args)...));
       return execute_helper(
-          std::make_index_sequence<std::tuple_size_v<decltype(tuple_eval(
-              _args, std::forward<Args>(args)...))>>{},
-          tuple_eval(_args, std::forward<Args>(args)...));
+          std::make_index_sequence<
+              std::tuple_size_v<decltype(tuple_eval(_args))>>{},
+          tuple_eval(_args));
     } else if constexpr (sizeof...(Args)) {
       // return Meta::tuple_apply(
       //     &Derived::eval,
@@ -111,7 +98,7 @@ public:
 
   template <typename... Args> auto operator()(Args &&...args) {
     auto new_args = std::tuple_cat(
-        _args, std::make_tuple(Meta::ref_helper(std::forward<Args>(args))...));
+        std::make_tuple(Meta::ref_helper(std::forward<Args>(args))...), _args);
     // static_assert(
     //     std::tuple_size_v<decltype(new_args)> <=
     //         Meta::traits<decltype(&Derived::template eval)>::param_size,

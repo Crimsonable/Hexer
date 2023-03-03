@@ -4,8 +4,8 @@
 #include <cinolib/gl/glcanvas.h>
 #include <cinolib/meshes/meshes.h>
 
-#include <core/hexer_core.h>
 #include "test_utility.h"
+#include <core/hexer_core.h>
 #include <core/tessellation.h>
 
 auto build_test_cube() {
@@ -34,7 +34,8 @@ void applyColorByGauassianNormal(cinolib::DrawableTrimesh<> &mesh,
 }
 
 int main() {
-  auto mesh = Hexer::LoopSubdivision()(unitOctahedron()).execute();
+  cinolib::Polygonmesh<> mesh =
+      Hexer::LoopSubdivision()(unitOctahedron()).execute();
   cinolib::DrawablePolygonmesh<> dmesh(mesh.vector_verts(),
                                        mesh.vector_polys());
 
