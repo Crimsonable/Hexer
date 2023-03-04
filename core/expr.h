@@ -18,7 +18,8 @@ template <Meta::ConceptExpr T> HEXER_INLINE auto Eval(T &&expr) {
   if constexpr (Meta::ConceptTuple<decltype(expr.execute())>)
     return Meta::ref_helper(expr.execute());
   else
-    return Meta::ref_helper(std::forward_as_tuple(expr.execute()));
+    return Meta::ref_helper(std::forward_as_tuple(
+        std::forward<decltype(expr.execute())>(expr.execute())));
 }
 
 template <typename ParamTuple, size_t... I>

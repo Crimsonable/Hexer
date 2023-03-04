@@ -95,7 +95,7 @@ public:
     for (const auto &vid : ranges::view::iota(n)) {
       mesh.vert(vid) = vertexSample_Loop(mesh, vid);
     }
-    return mesh;
+    return *dynamic_cast<cinolib::Polygonmesh<M, V, E, P> *>(&mesh);
   }
 };
 

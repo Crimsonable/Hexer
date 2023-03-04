@@ -85,7 +85,7 @@ template <typename ParamTuple> constexpr bool CheckExprInTuple() {
 }
 
 template <typename T> auto ref_helper(T &&t) {
-  if constexpr (std::is_lvalue_reference_v<T>) {
+  if constexpr (std::is_reference_v<T>) {
     if constexpr (std::is_const_v<T>)
       return std::cref(std::forward<T>(t));
     else
