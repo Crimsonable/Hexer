@@ -14,12 +14,11 @@ template <Meta::ConceptNonExpr T> HEXER_INLINE auto Eval(T &&val) {
 }
 
 template <Meta::ConceptExpr T> HEXER_INLINE auto Eval(T &&expr) {
-  static_assert(!Meta::ConceptTuple<decltype(expr.execute())>, "nmb");
-  if constexpr (Meta::ConceptTuple<decltype(expr.execute())>)
-    return Meta::ref_helper(expr.execute());
-  else
-    return Meta::ref_helper(std::forward_as_tuple(
-        std::forward<decltype(expr.execute())>(expr.execute())));
+  // if constexpr (Meta::ConceptTuple<decltype(expr.execute())>)
+  //   return expr.execute();
+  // else
+  //   return std::move(std::forward_as_tuple(std::move(expr.execute())));
+  return std::make_tuple(std::move(expr.execute()));
 }
 
 template <typename ParamTuple, size_t... I>
@@ -72,18 +71,11 @@ public:
   template <typename... Args> auto execute(Args &&...args) {
     if constexpr (std::tuple_size<ParamTuple>::value &&
                   Meta::CheckExprInTuple<ParamTuple>()) {
-      // return Meta::tuple_apply(&Derived::eval,
-      //                          tuple_eval(_args,
-      //                          std::forward<Args>(args)...));
       return execute_helper(
           std::make_index_sequence<
               std::tuple_size_v<decltype(tuple_eval(_args))>>{},
           tuple_eval(_args));
     } else if constexpr (sizeof...(Args)) {
-      // return Meta::tuple_apply(
-      //     &Derived::eval,
-      //     std::tuple_cat(_args, std::make_tuple(Meta::ref_helper(
-      //                               std::forward<Args>(args))...)));
       auto tp = std::tuple_cat(_args, std::make_tuple(Meta::ref_helper(
                                           std::forward<Args>(args))...));
       return execute_helper(
@@ -91,7 +83,6 @@ public:
               std::tuple_size_v<std::remove_cvref_t<decltype(tp)>>>{},
           tp);
     } else {
-      // return Meta::tuple_apply(&Derived::eval, _args);
       return execute_helper(
           std::make_index_sequence<std::tuple_size_v<ParamTuple>>{}, _args);
     }
@@ -100,10 +91,6 @@ public:
   template <typename... Args> auto operator()(Args &&...args) {
     auto new_args = std::tuple_cat(
         std::make_tuple(Meta::ref_helper(std::forward<Args>(args))...), _args);
-    // static_assert(
-    //     std::tuple_size_v<decltype(new_args)> <=
-    //         Meta::traits<decltype(&Derived::template eval)>::param_size,
-    //     "parameters oversize.");
     return Derived<device, decltype(new_args)>(new_args);
   }
 

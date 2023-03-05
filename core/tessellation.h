@@ -6,7 +6,7 @@
 #include <range/v3/range/concepts.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/iota.hpp>
+#include <range/v3/view/indices.hpp>
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
 
@@ -81,9 +81,8 @@ auto vertexSample_Loop(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
   auto view = mesh.adj_v2v(vid) | ranges::view::transform([&](const auto &id) {
                 return mesh.vert(id);
               });
-  return 0.5 * alpha / count *
-             ranges::accumulate(view, cinolib::vec3d(0, 0, 0)) +
-         (0.5 - alpha) * mesh.vert(vid);
+  return alpha / count * ranges::accumulate(view, cinolib::vec3d(0, 0, 0)) +
+         (1 - alpha) * mesh.vert(vid);
 }
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
@@ -92,10 +91,10 @@ class LoopAux_adjustVertex
 public:
   template <typename M, typename V, typename E, typename P>
   auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &&mesh, int n) {
-    for (const auto &vid : ranges::view::iota(n)) {
+    for (const auto &vid : ranges::view::indices(0, n)) {
       mesh.vert(vid) = vertexSample_Loop(mesh, vid);
     }
-    return *dynamic_cast<cinolib::Polygonmesh<M, V, E, P> *>(&mesh);
+    return std::move(*dynamic_cast<cinolib::Polygonmesh<M, V, E, P> *>(&mesh));
   }
 };
 

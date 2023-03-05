@@ -24,6 +24,5 @@ target_sources(
         threadpool.h
         tessellation.h
         hexer_core.h
-        expr_v2.h
 )
 target_include_directories(HexerCore PUBLIC ${CMAKE_CURRENT_LIST_DIR})
