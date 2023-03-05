@@ -8,6 +8,26 @@ void projectUnitSphere(cinolib::Polygonmesh<> &mesh) {
     v.normalize();
 }
 
+auto unitTetrahedron() {
+  cinolib::Polygonmesh<> mesh;
+  double a = 1.0 / 3.0;
+  double b = std::sqrt(8.0 / 9.0);
+  double c = std::sqrt(2.0 / 9.0);
+  double d = std::sqrt(2.0 / 3.0);
+
+  mesh.vert_add({0, 0, 1});
+  mesh.vert_add({-c, d, -a});
+  mesh.vert_add({-c, -d, -a});
+  mesh.vert_add({b, 0, -a});
+
+  mesh.poly_add({0, 1, 2});
+  mesh.poly_add({0, 2, 3});
+  mesh.poly_add({0, 3, 1});
+  mesh.poly_add({3, 2, 1});
+
+  return mesh;
+}
+
 auto unitHexahedron() {
   cinolib::Polygonmesh<> mesh;
   double l = 1.0 / std::sqrt(3.0);

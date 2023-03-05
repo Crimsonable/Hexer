@@ -81,8 +81,9 @@ auto vertexSample_Loop(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
   auto view = mesh.adj_v2v(vid) | ranges::view::transform([&](const auto &id) {
                 return mesh.vert(id);
               });
-  return alpha / count * ranges::accumulate(view, cinolib::vec3d(0, 0, 0)) +
-         (1 - alpha) * mesh.vert(vid);
+  return 1.6 * alpha / count *
+             ranges::accumulate(view, cinolib::vec3d(0, 0, 0)) +
+         (1 - 1.6 * alpha) * mesh.vert(vid);
 }
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
@@ -103,10 +104,15 @@ class LoopSubdivision
     : public CrtpExprBase<device, LoopSubdivision, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
-  auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh) {
-    return (LoopAux_addVertex()(mesh) |
-            LoopAux_adjustVertex()(mesh.num_verts()))
-        .execute();
+  auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh, int n) {
+    auto expr =
+        (LoopAux_addVertex()(mesh) | LoopAux_adjustVertex()(mesh.num_verts()));
+    cinolib::Polygonmesh<M, V, E, P> _mesh = expr.execute();
+    for (int i = 0; i < n - 1; ++i)
+      _mesh = (LoopAux_addVertex()(_mesh) |
+               LoopAux_adjustVertex()(_mesh.num_verts()))
+                  .execute();
+    return _mesh;
   }
 };
 } // namespace Hexer

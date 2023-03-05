@@ -35,7 +35,8 @@ void applyColorByGauassianNormal(cinolib::DrawableTrimesh<> &mesh,
 
 int main() {
   cinolib::Polygonmesh<> mesh =
-      Hexer::LoopSubdivision()(unitOctahedron()).execute();
+      Hexer::LoopSubdivision()(unitOctahedron(), 5).execute();
+  // cinolib::Polygonmesh<> mesh = unitTetrahedron();
   cinolib::DrawablePolygonmesh<> dmesh(mesh.vector_verts(),
                                        mesh.vector_polys());
 
