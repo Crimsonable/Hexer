@@ -33,7 +33,8 @@ auto edgeSample_Loop(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
 // algorithm
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class LoopAux_addVertex
-    : public CrtpExprBase<device, LoopAux_addVertex, ParamTuple> {
+    : public CrtpExprBase<device, LoopAux_addVertex<device, ParamTuple>,
+                          ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &ori_mesh) {
@@ -88,7 +89,8 @@ auto vertexSample_Loop(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class LoopAux_adjustVertex
-    : public CrtpExprBase<device, LoopAux_adjustVertex, ParamTuple> {
+    : public CrtpExprBase<device, LoopAux_adjustVertex<device, ParamTuple>,
+                          ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &&mesh, int n) {
@@ -101,7 +103,8 @@ public:
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class LoopSubdivision
-    : public CrtpExprBase<device, LoopSubdivision, ParamTuple> {
+    : public CrtpExprBase<device, LoopSubdivision<device, ParamTuple>,
+                          ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh, int n) {

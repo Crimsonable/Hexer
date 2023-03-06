@@ -63,6 +63,8 @@ public:
 
   constexpr bool check() { return Meta::CheckExprInTuple(_args); }
 
+  template <int N, typename... Args> auto feed(Args &&...args) {}
+
   HEXER_INLINE
   Derived<device, ParamTuple> *derived() {
     return static_cast<Derived<device, ParamTuple> *>(this);

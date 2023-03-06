@@ -2,7 +2,7 @@
 #include "expr.h"
 #include "threadpool.h"
 
-//#include <Expblas/graph_funcs.h>
+// #include <Expblas/graph_funcs.h>
 #include <cinolib/meshes/meshes.h>
 #include <eigen3/unsupported/Eigen/MatrixFunctions>
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
@@ -147,7 +147,8 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GlobalOrientationAlign
-    : public CrtpExprBase<device, GlobalOrientationAlign, ParamTuple> {
+    : public CrtpExprBase<device, GlobalOrientationAlign<device, ParamTuple>,
+                          ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(cinolib::AbstractMesh<M, V, E, P> &mesh) {

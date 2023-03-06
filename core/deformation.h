@@ -77,7 +77,8 @@ public:
 // caculate Laplacian matrix using given method(cotangent,uniform)
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class LaplacianMatrix
-    : public CrtpExprBase<Device::CPU, LaplacianMatrix, ParamTuple> {
+    : public CrtpExprBase<Device::CPU, LaplacianMatrix<device, ParamTuple>,
+                          ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const LaplacianOptions &options,
@@ -112,7 +113,8 @@ public:
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class LaplacianSmoother
-    : public CrtpExprBase<device, LaplacianSmoother, ParamTuple> {
+    : public CrtpExprBase<device, LaplacianSmoother<device, ParamTuple>,
+                          ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const LaplacianOptions &options,
@@ -171,7 +173,8 @@ inline auto poly_centroid(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GaussianDistanceWeight
-    : public CrtpExprBase<device, GaussianDistanceWeight, ParamTuple> {
+    : public CrtpExprBase<device, GaussianDistanceWeight<device, ParamTuple>,
+                          ParamTuple> {
 public:
   auto eval(const Eigen::Matrix3Xd &normals, const Eigen::Matrix3Xd &centers,
             const Eigen::VectorXd &areas, double sigma, uint fid) {
@@ -195,7 +198,8 @@ public:
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GaussianSmoothFacetNormals
-    : public CrtpExprBase<device, GaussianSmoothFacetNormals, ParamTuple> {
+    : public CrtpExprBase<
+          device, GaussianSmoothFacetNormals<device, ParamTuple>, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const DeformationOptions &options,
@@ -255,7 +259,8 @@ auto GaussianSmoothFacetNormals_naive(
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class NormalSmooothEnergy
-    : public CrtpExprBase<device, NormalSmooothEnergy, ParamTuple> {
+    : public CrtpExprBase<device, NormalSmooothEnergy<device, ParamTuple>,
+                          ParamTuple> {
 
   template <typename M, typename V, typename E, typename P>
   static auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &surface,

@@ -23,7 +23,7 @@ auto build_test_cube() {
   return mesh;
 }
 
-void applyColorByGauassianNormal(cinolib::DrawableTrimesh<> &mesh,
+void applyColorByGauassianNormal(cinolib::DrawablePolygonmesh<> &mesh,
                                  const Eigen::Matrix3Xd &gsn) {
   for (int fid = 0; fid < mesh.num_polys(); ++fid) {
     cinolib::Color c(std::abs(gsn.col(fid).coeff(0)),
@@ -33,10 +33,11 @@ void applyColorByGauassianNormal(cinolib::DrawableTrimesh<> &mesh,
   }
 }
 
-int main() {
+int main0() {
   cinolib::Polygonmesh<> mesh =
       Hexer::LoopSubdivision()(unitOctahedron(), 5).execute();
-  // cinolib::Polygonmesh<> mesh = unitTetrahedron();
+  projectUnitSphere(mesh);
+
   cinolib::DrawablePolygonmesh<> dmesh(mesh.vector_verts(),
                                        mesh.vector_polys());
 
@@ -47,17 +48,22 @@ int main() {
   return gui.launch();
 }
 
-int main0() {
-  cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
-  mesh.update_bbox();
+int main() {
+  // cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  // mesh.update_bbox();
   // auto surface_mesh = build_test_cube();
+  cinolib::Polygonmesh<> raw_surface_mesh =
+      Hexer::LoopSubdivision()(unitOctahedron(), 3).execute();
+  projectUnitSphere(raw_surface_mesh);
+  cinolib::DrawablePolygonmesh<> surface_mesh(raw_surface_mesh.vector_verts(),
+                                              raw_surface_mesh.vector_polys());
 
-  cinolib::DrawableTrimesh<> surface_mesh;
-  auto converter = Hexer::Convert2SurfaceMesh()(surface_mesh);
-  hexer_timer([&]() { converter.execute(mesh); }, "Surface convert ");
-  surface_mesh.init_drawable_stuff();
-  surface_mesh.translate(cinolib::vec3d(mesh.bbox().delta_x() * 1.2, 0, 0));
-  surface_mesh.update_bbox();
+  // cinolib::DrawableTrimesh<> surface_mesh;
+  // auto converter = Hexer::Convert2SurfaceMesh()(surface_mesh);
+  // hexer_timer([&]() { converter.execute(mesh); }, "Surface convert ");
+  // surface_mesh.init_drawable_stuff();
+  // surface_mesh.translate(cinolib::vec3d(mesh.bbox().delta_x() * 1.2, 0, 0));
+  // surface_mesh.update_bbox();
   //  surface_mesh.poly_set_color(cinolib::Color(0.3098, 0.7647, 0.9686));
 
   auto transformer = Hexer::GlobalOrientationAlign()(surface_mesh);

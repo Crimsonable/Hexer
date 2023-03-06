@@ -9,7 +9,8 @@ namespace Hexer {
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class Convert2SurfaceMesh
-    : public CrtpExprBase<device, Convert2SurfaceMesh, ParamTuple> {
+    : public CrtpExprBase<device, Convert2SurfaceMesh<device, ParamTuple>,
+                          ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename F, typename P1,
             typename P2>
