@@ -123,7 +123,8 @@
         "__split_buffer": "cpp",
         "memory_resource": "cpp",
         "__node_handle": "cpp",
-        "hash_map": "cpp"
+        "hash_map": "cpp",
+        "sparsecore": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {

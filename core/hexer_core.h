@@ -2,3 +2,4 @@
 #include "deformation.h"
 #include "transformation.h"
 #include "tessellation.h"
+#include "utilities.h"
