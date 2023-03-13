@@ -6,6 +6,7 @@
 #include <cinolib/meshes/meshes.h>
 #include <execution>
 #include <numeric>
+#include <range/v3/core.hpp>
 
 namespace Hexer {
 enum class SmoothMethod { UNIFORM, COTANGENT };
@@ -256,6 +257,48 @@ auto GaussianSmoothFacetNormals_naive(
   }
   return gsn;
 }
+
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class DeformeEnergy
+    : public CrtpExprBase<device, Deforme<device, ParamTuple>, ParamTuple> {
+
+  Eigen::Matrix3Xd A_0;
+  Eigen::Matrix3Xd A_1;
+
+public:
+  // poly's deformation affine matrix is [vp-vq | vp-vr | vp-vs]
+  template <typename M, typename V, typename E, typename P>
+  HEXER_INLINE auto
+  poly_affine(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
+              int pid) {
+    Eigen::Matrix3d _poly_A_0;
+    auto &adj_p2v = mesh.adj_p2v(pid);
+    for (int i = 0; i < adj_p2v.size() - 1; ++i)
+      _poly_A_0.col(i) =
+          *reinterpret_cast<Eigen::Vector3d *>(&mesh.vert(adj_p2v[0])) -
+          *reinterpret_cast<Eigen::Vector3d *>(&mesh.vert(adj_p2v[i + 1]));
+    return _poly_A_0;
+  }
+
+  template <typename M, typename V, typename E, typename P>
+  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh) {
+
+    // A_0 is constant during the calculation, if A_0's size equals to 0, then
+    // calculate A_0 once.
+    if (A_0.size() == 0) {
+      A_0.resize(3, mesh.num_polys() * 3);
+      A_1.resize(3, mesh.num_polys() * 3);
+
+      for (int pid = 0; pid < mesh.num_polys(); ++pid) {
+        A_1.block<3, 3>(0, pid * 3) = poly_affine(mesh, pid);
+        A_0.block<3, 3>(0, pid * 3) = A_1.block<3, 3>(0, pid * 3).reverse();
+      }
+    }
+
+    for (int pid = 0; pid < mesh.num_polys(); ++pid)
+      A_1.block<3, 3>(0, pid * 3) = poly_affine(mesh, pid);
+  }
+};
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class NormalSmooothEnergy
