@@ -6,41 +6,87 @@
 #include <map>
 #include <range/v3/action/sort.hpp>
 #include <range/v3/algorithm/find.hpp>
+#include <range/v3/algorithm/sort.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/view/iota.hpp>
 
 namespace Hexer {
-
-template <typename M, typename V, typename E, typename P>
-auto DisconnectedVertex(const cinolib::AbstractMesh<M, V, E, P> &mesh,
-                        std::vector<int> &current_set, int current_filter) {
-  return current_set | ranges::views::filter([&](int vid) {
-           return !mesh.vert_data(vid).flags[7] &&
-                  ranges::find(mesh.adj_v2v(current_filter), vid) ==
-                      ranges::end(mesh.adj_v2v(current_filter));
-         });
-}
+enum class SortOrder { DescendOrder, AscendOrder };
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
-class ReIndex
-    : public CrtpExprBase<device, ReIndex<device, ParamTuple>, ParamTuple> {
+class Order
+    : public CrtpExprBase<device, Order<device, ParamTuple>, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
-  auto eval(cinolib::AbstractMesh<M, V, E, P> &mesh) {
-    std::map<int, std::vector<int>> color_map;
-    auto reindex = ranges::views::iota(0, mesh.num_verts()) |
-                   ranges::to<std::vector<int>>();
-    reindex =
-        std::move(reindex) | ranges::actions::sort([&](auto id1, auto id2) {
-          return mesh.adj_v2v(id1).size() > mesh.adj_v2v(id2).size();
-        });
-
-    std::vector<int> filter_set = reindex;
-    int current_filter = 0;
-    for (auto color : ranges::iota(0)) {
-      DisconnectedVertex(mesh, filter_set, current_filter);
-    }
+  auto eval(const cinolib::AbstractMesh<M, V, E, P> &mesh, SortOrder order) {
+    std::vector<int> ids = ranges::views::iota(0, int(mesh.num_verts())) |
+                           ranges::to<std::vector<int>>;
+    if (order == SortOrder::DescendOrder)
+      return std::move(ids) |
+             ranges::actions::sort([&](const auto &v1, const auto &v2) {
+               return mesh.vert_valence(v1) > mesh.vert_valence(v2);
+             });
+    else if (order == SortOrder::AscendOrder)
+      return std::move(ids) |
+             ranges::actions::sort([&](const auto &v1, const auto &v2) {
+               return mesh.vert_valence(v1) < mesh.vert_valence(v2);
+             });
   }
 };
+
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class VertexColoring
+    : public CrtpExprBase<device, VertexColoring<device, ParamTuple>,
+                          ParamTuple> {
+public:
+  template <typename M, typename V, typename E, typename P>
+  auto eval(const cinolib::AbstractMesh<M, V, E, P> &mesh,
+            SortOrder orderRule) {
+    auto order = Order()(mesh, orderRule).execute();
+
+    std::vector<int> color(mesh.num_verts(), -1);
+    int current_max_color = 0;
+    int max_colors = 0;
+    for (auto vid : ranges::views::iota(0, int(mesh.num_verts())))
+      max_colors = std::max(max_colors, int(mesh.vert_valence(vid)));
+    max_colors++;
+
+    for (const auto vid : ranges::views::iota(0, int(mesh.num_verts()))) {
+      // marks is used to store all the color which has already been
+      // assigned to the surrounding vertex of vid
+      std::vector<int> marks(max_colors, -1);
+      int current_vid = order[vid];
+
+      for (const auto &adjv : mesh.adj_v2v(current_vid))
+        if (color[adjv] != -1)
+          marks[color[adjv]] = 1;
+
+      int c = 0;
+      for (; c < max_colors; ++c)
+        if (marks[c] == -1)
+          break;
+      color[current_vid] = c;
+    }
+    return color;
+  }
+};
+
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class GraphColorMap
+    : public CrtpExprBase<device, GraphColorMap<device, ParamTuple>,
+                          ParamTuple> {
+public:
+  auto eval(const std::vector<int> &colors) {
+    std::map<int, std::vector<int>> color_map;
+    for (auto [vid, c] : colors | ranges::views::enumerate) {
+      if (map.find(c) == color_map.end())
+        map[c] = std::vector<int>();
+      map[c].push_back(vid);
+    }
+    return color_map;
+  }
+};
+
 } // namespace Hexer
