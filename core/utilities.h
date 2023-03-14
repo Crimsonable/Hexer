@@ -81,9 +81,9 @@ public:
   auto eval(const std::vector<int> &colors) {
     std::map<int, std::vector<int>> color_map;
     for (auto [vid, c] : colors | ranges::views::enumerate) {
-      if (map.find(c) == color_map.end())
-        map[c] = std::vector<int>();
-      map[c].push_back(vid);
+      if (color_map.find(c) == color_map.end())
+        color_map[c] = std::vector<int>();
+      color_map[c].push_back(vid);
     }
     return color_map;
   }

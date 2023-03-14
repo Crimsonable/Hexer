@@ -258,45 +258,66 @@ auto GaussianSmoothFacetNormals_naive(
   return gsn;
 }
 
+struct DeformeEnergyOptions {
+  double alpha = 0.5;
+  double s = 1.0;
+};
+
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class DeformeEnergy
-    : public CrtpExprBase<device, Deforme<device, ParamTuple>, ParamTuple> {
+    : public CrtpExprBase<device, DeformeEnergy<device, ParamTuple>,
+                          ParamTuple> {
 
   Eigen::Matrix3Xd A_0;
   Eigen::Matrix3Xd A_1;
+  Eigen::VectorXd energy;
 
 public:
   // poly's deformation affine matrix is [vp-vq | vp-vr | vp-vs]
   template <typename M, typename V, typename E, typename P>
   HEXER_INLINE auto
-  poly_affine(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
-              int pid) {
-    Eigen::Matrix3d _poly_A_0;
+  poly_affine(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh, int pid,
+              Eigen::Matrix3Xd &mat) {
     auto &adj_p2v = mesh.adj_p2v(pid);
     for (int i = 0; i < adj_p2v.size() - 1; ++i)
-      _poly_A_0.col(i) =
+      mat.block<3, 3>(0, 3 * pid).col(i) =
           *reinterpret_cast<Eigen::Vector3d *>(&mesh.vert(adj_p2v[0])) -
           *reinterpret_cast<Eigen::Vector3d *>(&mesh.vert(adj_p2v[i + 1]));
-    return _poly_A_0;
   }
 
   template <typename M, typename V, typename E, typename P>
-  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh) {
+  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
+            DeformeEnergyOptions options) {
 
     // A_0 is constant during the calculation, if A_0's size equals to 0, then
     // calculate A_0 once.
     if (A_0.size() == 0) {
       A_0.resize(3, mesh.num_polys() * 3);
       A_1.resize(3, mesh.num_polys() * 3);
+      energy.resize(mesh.num_polys(), 1);
 
       for (int pid = 0; pid < mesh.num_polys(); ++pid) {
-        A_1.block<3, 3>(0, pid * 3) = poly_affine(mesh, pid);
-        A_0.block<3, 3>(0, pid * 3) = A_1.block<3, 3>(0, pid * 3).reverse();
+        A_1.block<3, 3>(0, pid * 3) = Eigen::Matrix3d::Identity();
+        poly_affine(mesh, pid, A_0);
+        A_0.block<3, 3>(0, 3 * pid) = A_0.block<3, 3>(0, 3 * pid).reverse();
       }
     }
 
-    for (int pid = 0; pid < mesh.num_polys(); ++pid)
-      A_1.block<3, 3>(0, pid * 3) = poly_affine(mesh, pid);
+    for (int pid = 0; pid < mesh.num_polys(); ++pid) {
+      poly_affine(mesh, pid, A_1);
+      auto A_expr = A_1.block<3, 3>(0, pid * 3) * A_0.block<3, 3>(0, pid * 3);
+      auto A_rev = A_expr.reverse();
+      double conformal =
+          0.125 * (std::sqrt((A_expr.transpose() * A_expr).trace()) *
+                       std::sqrt((A_rev.transpose() * A_rev).trace()) -
+                   1);
+      double A_det = A_expr.determinant();
+      double volumetric = 0.5 * (A_det + 1.0 / A_det);
+      energy.coeffRef(pid) = std::exp(
+          options.s * (options.alpha * conformal + options.alpha * volumetric));
+    }
+
+    return energy.sum();
   }
 };
 
