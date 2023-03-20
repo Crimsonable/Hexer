@@ -4,13 +4,7 @@
 
 #include <cinolib/meshes/meshes.h>
 #include <map>
-#include <range/v3/action/sort.hpp>
-#include <range/v3/algorithm/find.hpp>
-#include <range/v3/algorithm/sort.hpp>
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/to_container.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/iota.hpp>
+#include <range/v3/all.hpp>
 
 namespace Hexer {
 enum class SortOrder { DescendOrder, AscendOrder };

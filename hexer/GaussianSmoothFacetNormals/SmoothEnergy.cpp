@@ -6,7 +6,6 @@
 
 #include "test_utility.h"
 #include <core/hexer_core.h>
-#include <core/tessellation.h>
 
 auto build_test_cube() {
   cinolib::DrawablePolygonmesh<> mesh;
@@ -33,7 +32,15 @@ void applyColorByGauassianNormal(cinolib::DrawablePolygonmesh<> &mesh,
   }
 }
 
-int main0() {
+void TestEnergy() {
+  cinolib::Polyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+
+  Hexer::DeformationOptions options;
+  options.sigma = 1;
+  auto facet = Hexer::FacetNormalsEnergy()(mesh, options).execute();
+}
+
+int TestLoopSubdivision() {
   cinolib::Polygonmesh<> mesh =
       Hexer::LoopSubdivision()(unitOctahedron(), 5).execute();
   projectUnitSphere(mesh);
@@ -48,7 +55,7 @@ int main0() {
   return gui.launch();
 }
 
-int testGraphColoring() {
+int TestGraphColoring() {
   cinolib::Polygonmesh<> raw_surface_mesh =
       Hexer::LoopSubdivision()(unitOctahedron(), 3).execute();
   projectUnitSphere(raw_surface_mesh);
@@ -87,45 +94,30 @@ int testGraphColoring() {
   return gui.launch();
 }
 
-int main() {
-  testGraphColoring();
-  return 1;
-}
-
-int main1() {
-  // cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
-  // mesh.update_bbox();
-  // auto surface_mesh = build_test_cube();
+int testGSN() {
   cinolib::Polygonmesh<> raw_surface_mesh =
       Hexer::LoopSubdivision()(unitOctahedron(), 3).execute();
   projectUnitSphere(raw_surface_mesh);
   cinolib::DrawablePolygonmesh<> surface_mesh(raw_surface_mesh.vector_verts(),
                                               raw_surface_mesh.vector_polys());
 
-  // cinolib::DrawableTrimesh<> surface_mesh;
-  // auto converter = Hexer::Convert2SurfaceMesh()(surface_mesh);
-  // hexer_timer([&]() { converter.execute(mesh); }, "Surface convert ");
-  // surface_mesh.init_drawable_stuff();
-  // surface_mesh.translate(cinolib::vec3d(mesh.bbox().delta_x() * 1.2, 0, 0));
-  // surface_mesh.update_bbox();
-  //  surface_mesh.poly_set_color(cinolib::Color(0.3098, 0.7647, 0.9686));
-
   auto transformer = Hexer::GlobalOrientationAlign()(surface_mesh);
   hexer_timer([&]() { transformer.execute(); }, "Align operation ");
 
   Hexer::DeformationOptions options;
   options.sigma = 1;
-  auto deformer = Hexer::GaussianSmoothFacetNormals()(options, surface_mesh);
+  auto deformer = Hexer::GaussianSmoothFacetNormals()(surface_mesh, options);
   Eigen::Matrix3Xd gsn;
   hexer_timer([&]() { gsn = deformer.execute(); }, "Gaussian smoother ");
-  // auto gsn = Hexer::GaussianSmoothFacetNormals_naive(surface_mesh);
-  // surface_mesh.poly_data(0).color = cinolib::Color(1, 0, 0);
-
-  // std::cout << gsn << std::endl;
   applyColorByGauassianNormal(surface_mesh, gsn);
 
   surface_mesh.updateGL();
   cinolib::GLcanvas gui;
   gui.push(&surface_mesh);
   return gui.launch();
+}
+
+int main() {
+  TestGraphColoring();
+  return 1;
 }

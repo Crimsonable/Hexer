@@ -6,7 +6,7 @@
 #include <cinolib/meshes/meshes.h>
 #include <execution>
 #include <numeric>
-#include <range/v3/core.hpp>
+#include <range/v3/all.hpp>
 
 namespace Hexer {
 enum class SmoothMethod { UNIFORM, COTANGENT };
@@ -203,8 +203,8 @@ class GaussianSmoothFacetNormals
           device, GaussianSmoothFacetNormals<device, ParamTuple>, ParamTuple> {
 public:
   template <typename M, typename V, typename E, typename P>
-  static auto eval(const DeformationOptions &options,
-                   cinolib::AbstractPolygonMesh<M, V, E, P> &mesh) {
+  static auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
+                   const DeformationOptions &options) {
     std::vector<cinolib::vec3d> ns = mesh.vector_poly_normals();
 
     Eigen::Matrix3Xd normals =
@@ -258,6 +258,53 @@ auto GaussianSmoothFacetNormals_naive(
   return gsn;
 }
 
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class FacetNormalsEnergy
+    : public CrtpExprBase<device, FacetNormalsEnergy<device, ParamTuple>,
+                          ParamTuple> {
+  Eigen::Matrix3Xd _gsn;
+  Eigen::Matrix3Xd _normals;
+  std::vector<cinolib::vec3u> _index;
+
+public:
+  template <typename... Args>
+  FacetNormalsEnergy(Args &&...args)
+      : CrtpExprBase<device, FacetNormalsEnergy<device, ParamTuple>,
+                     ParamTuple>(std::forward<decltype(args)>(args)...) {}
+
+  template <typename M, typename V, typename E, typename P>
+  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
+            DeformationOptions options) {
+    if (_gsn.size() == 0) {
+      auto surface_mesh = Convert2SurfaceMesh()(mesh).execute();
+      _gsn = GaussianSmoothFacetNormals()(surface_mesh, options).execute();
+      auto index_raw = mesh.get_surface_faces();
+      _index.reserve(index_raw.size() * 3);
+      _normals.resize(3, index_raw.size());
+
+      for (auto &f : index_raw) {
+        cinolib::vec3u v_tmp;
+        int count = 0;
+        for (const auto &v : mesh.face_verts_id(f)) {
+          v_tmp[count] = v;
+          count++;
+        }
+        _index.push_back(v_tmp);
+      }
+    }
+    for (const auto &[i, fid] : _index | ranges::views::enumerate) {
+      cinolib::vec3d v0 = mesh.vert(fid[0]);
+      cinolib::vec3d v1 = mesh.vert(fid[1]);
+      cinolib::vec3d v2 = mesh.vert(fid[2]);
+
+      cinolib::vec3d n = (v1 - v0).cross(v2 - v0);
+      Eigen::Vector3d *n_ptr = reinterpret_cast<Eigen::Vector3d *>(&n);
+      _normals.col(i) = n_ptr->normalized();
+    }
+    return (_normals - _gsn).colwise().squaredNorm().sum();
+  }
+};
+
 struct DeformeEnergyOptions {
   double alpha = 0.5;
   double s = 1.0;
@@ -273,6 +320,11 @@ class DeformeEnergy
   Eigen::VectorXd energy;
 
 public:
+  template <typename... Args>
+  DeformeEnergy(Args &&...args)
+      : CrtpExprBase<device, DeformeEnergy<device, ParamTuple>, ParamTuple>(
+            std::forward<decltype(args)>(args)...) {}
+
   // poly's deformation affine matrix is [vp-vq | vp-vr | vp-vs]
   template <typename M, typename V, typename E, typename P>
   HEXER_INLINE auto
@@ -319,17 +371,5 @@ public:
 
     return energy.sum();
   }
-};
-
-template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
-class NormalSmooothEnergy
-    : public CrtpExprBase<device, NormalSmooothEnergy<device, ParamTuple>,
-                          ParamTuple> {
-
-  template <typename M, typename V, typename E, typename P>
-  static auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &surface,
-                   Eigen::Matrix3Xd &vertices, Eigen::Matrix3Xd &centeral_point,
-                   Eigen::Matrix3Xd &normals, Eigen::VectorXd &areas,
-                   Eigen::VectorXd &ns_energy) {}
 };
 } // namespace Hexer

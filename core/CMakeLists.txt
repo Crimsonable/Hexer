@@ -1,7 +1,9 @@
 cmake_minimum_required (VERSION 3.19)
 
 target_sources(
-    HexerCore 
+    HexerCore
+    PRIVATE
+        non.cpp 
     PUBLIC
         base.h
         traits.h

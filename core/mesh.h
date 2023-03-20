@@ -12,10 +12,8 @@ class Convert2SurfaceMesh
     : public CrtpExprBase<device, Convert2SurfaceMesh<device, ParamTuple>,
                           ParamTuple> {
 public:
-  template <typename M, typename V, typename E, typename F, typename P1,
-            typename P2>
-  void eval(cinolib::AbstractPolygonMesh<M, V, E, P1> &surface,
-            const cinolib::AbstractPolyhedralMesh<M, V, E, F, P2> &mesh) {
+  template <typename M, typename V, typename E, typename F, typename P>
+  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh) {
     std::vector<cinolib::vec3d> vertices_coords;
     std::vector<std::vector<uint>> faces;
     std::map<uint, uint> vertices_map;
@@ -35,7 +33,9 @@ public:
       }
     }
 
+    cinolib::Polygonmesh<> surface;
     surface.init(vertices_coords, faces);
+    return surface;
   }
 };
 
