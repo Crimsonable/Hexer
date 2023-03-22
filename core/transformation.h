@@ -157,6 +157,7 @@ public:
     BFGS<decltype(functor)> solver(functor);
     auto info = solver.solve(euler);
 
+    return euler;
     Eigen::AngleAxisd rotation;
     rotation.fromRotationMatrix(EulerToRotationMatrix(euler));
     cinolib::vec3d axis{rotation.axis()[0], rotation.axis()[1],

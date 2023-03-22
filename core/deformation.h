@@ -4,6 +4,7 @@
 #include "mesh.h"
 
 #include <cinolib/meshes/meshes.h>
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 #include <execution>
 #include <numeric>
 #include <range/v3/all.hpp>
@@ -148,16 +149,9 @@ public:
   }
 };
 
-struct DeformationOptions {
+struct FacetNormalDeformOption {
   double sigma = 0.01;
 };
-
-template <typename M = cinolib::Mesh_std_attributes,
-          typename V = cinolib::Vert_std_attributes,
-          typename E = cinolib::Edge_std_attributes,
-          typename Pf = cinolib::Polygon_std_attributes,
-          typename Pv = cinolib::Polyhedron_std_attributes>
-struct NormalSmoothFunctor {};
 
 template <typename M, typename V, typename E, typename P>
 inline auto poly_centroid(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
@@ -204,7 +198,7 @@ class GaussianSmoothFacetNormals
 public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
-                   const DeformationOptions &options) {
+                   const FacetNormalDeformOption &options) {
     std::vector<cinolib::vec3d> ns = mesh.vector_poly_normals();
 
     Eigen::Matrix3Xd normals =
@@ -274,7 +268,7 @@ public:
 
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
-            DeformationOptions options) {
+            FacetNormalDeformOption options) {
     if (_gsn.size() == 0) {
       auto surface_mesh = Convert2SurfaceMesh()(mesh).execute();
       _gsn = GaussianSmoothFacetNormals()(surface_mesh, options).execute();
@@ -305,14 +299,14 @@ public:
   }
 };
 
-struct DeformeEnergyOptions {
+struct DeformEnergyOptions {
   double alpha = 0.5;
   double s = 1.0;
 };
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
-class DeformeEnergy
-    : public CrtpExprBase<device, DeformeEnergy<device, ParamTuple>,
+class DeformEnergy
+    : public CrtpExprBase<device, DeformEnergy<device, ParamTuple>,
                           ParamTuple> {
 
   Eigen::Matrix3Xd A_0;
@@ -321,8 +315,8 @@ class DeformeEnergy
 
 public:
   template <typename... Args>
-  DeformeEnergy(Args &&...args)
-      : CrtpExprBase<device, DeformeEnergy<device, ParamTuple>, ParamTuple>(
+  DeformEnergy(Args &&...args)
+      : CrtpExprBase<device, DeformEnergy<device, ParamTuple>, ParamTuple>(
             std::forward<decltype(args)>(args)...) {}
 
   // poly's deformation affine matrix is [vp-vq | vp-vr | vp-vs]
@@ -333,13 +327,17 @@ public:
     auto &adj_p2v = mesh.adj_p2v(pid);
     for (int i = 0; i < adj_p2v.size() - 1; ++i)
       mat.block<3, 3>(0, 3 * pid).col(i) =
-          *reinterpret_cast<Eigen::Vector3d *>(&mesh.vert(adj_p2v[0])) -
-          *reinterpret_cast<Eigen::Vector3d *>(&mesh.vert(adj_p2v[i + 1]));
+          *reinterpret_cast<Eigen::Vector3d *>(
+              &(const_cast<cinolib::AbstractPolyhedralMesh<M, V, E, P> *>(&mesh)
+                    ->vert(adj_p2v[0]))) -
+          *reinterpret_cast<Eigen::Vector3d *>(
+              &(const_cast<cinolib::AbstractPolyhedralMesh<M, V, E, P> *>(&mesh)
+                    ->vert(adj_p2v[i + 1])));
   }
 
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
-            DeformeEnergyOptions options) {
+            DeformEnergyOptions options) {
 
     // A_0 is constant during the calculation, if A_0's size equals to 0, then
     // calculate A_0 once.
@@ -351,17 +349,18 @@ public:
       for (int pid = 0; pid < mesh.num_polys(); ++pid) {
         A_1.block<3, 3>(0, pid * 3) = Eigen::Matrix3d::Identity();
         poly_affine(mesh, pid, A_0);
-        A_0.block<3, 3>(0, 3 * pid) = A_0.block<3, 3>(0, 3 * pid).reverse();
+        A_0.block<3, 3>(0, 3 * pid) =
+            A_0.block<3, 3>(0, 3 * pid).inverse().eval();
       }
     }
 
     for (int pid = 0; pid < mesh.num_polys(); ++pid) {
       poly_affine(mesh, pid, A_1);
       auto A_expr = A_1.block<3, 3>(0, pid * 3) * A_0.block<3, 3>(0, pid * 3);
-      auto A_rev = A_expr.reverse();
+      auto A_inv = A_expr.inverse();
       double conformal =
           0.125 * (std::sqrt((A_expr.transpose() * A_expr).trace()) *
-                       std::sqrt((A_rev.transpose() * A_rev).trace()) -
+                       std::sqrt((A_inv.transpose() * A_inv).trace()) -
                    1);
       double A_det = A_expr.determinant();
       double volumetric = 0.5 * (A_det + 1.0 / A_det);
@@ -372,4 +371,44 @@ public:
     return energy.sum();
   }
 };
+
+template <typename DeformE, typename FacetE>
+struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
+  MeshDeformFunctor(DeformE &deformE, FacetE &facetE)
+      : _deformE(deformE), _facetE(facetE) {}
+
+  int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) {
+    fvec[0] = _deformE.execute() + _facetE.execute();
+    return 0;
+  }
+
+  DeformE &_deformE;
+  FacetE &_facetE;
+};
+
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class PolyCubeGen
+    : public CrtpExprBase<device, PolyCubeGen<device, ParamTuple>, ParamTuple> {
+public:
+  template <typename M, typename V, typename E, typename P>
+  auto eval(cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
+            DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
+    auto deform_op = DeformEnergy()(mesh, d_options);
+    auto facet_op = FacetNormalsEnergy()(mesh, f_options);
+    auto functor = MeshDeformFunctor(deform_op, facet_op);
+
+    Eigen::HybridNonLinearSolver<decltype(functor)> solver(functor);
+    Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
+        mesh.vector_verts().data()->ptr(), mesh.num_verts());
+    auto info = solver.solveNumericalDiff(x);
+
+    auto status = solver.solveNumericalDiffInit(x);
+    do {
+      status = solver.solveNumericalDiffOneStep(x);
+      spdlog::info("iter: {} | TargetVal: {:03.2f}", solver.iter,
+                   solver.fvec.sum());
+    } while (status == Eigen::HybridNonLinearSolverSpace::Running);
+  }
+};
+
 } // namespace Hexer

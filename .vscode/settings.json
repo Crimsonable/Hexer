@@ -124,7 +124,8 @@
         "memory_resource": "cpp",
         "__node_handle": "cpp",
         "hash_map": "cpp",
-        "sparsecore": "cpp"
+        "sparsecore": "cpp",
+        "execution": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {

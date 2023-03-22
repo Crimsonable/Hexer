@@ -32,12 +32,26 @@ void applyColorByGauassianNormal(cinolib::DrawablePolygonmesh<> &mesh,
   }
 }
 
+void MeshAlign(cinolib::Polyhedralmesh<> &mesh) {
+  auto surface_mesh = Hexer::Convert2SurfaceMesh()(mesh).execute();
+  auto euler = Hexer::GlobalOrientationAlign()(surface_mesh).execute();
+  Eigen::AngleAxisd rotation;
+  rotation.fromRotationMatrix(Hexer::EulerToRotationMatrix(euler));
+  cinolib::vec3d axis{rotation.axis()[0], rotation.axis()[1],
+                      rotation.axis()[2]};
+  mesh.rotate(axis, rotation.angle());
+}
+
 void TestEnergy() {
   cinolib::Polyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  MeshAlign(mesh);
 
-  Hexer::DeformationOptions options;
+  Hexer::FacetNormalDeformOption options;
+  Hexer::DeformEnergyOptions options2;
   options.sigma = 1;
-  auto facet = Hexer::FacetNormalsEnergy()(mesh, options).execute();
+  auto facet = Hexer::FacetNormalsEnergy()(mesh, options).execute() +
+               Hexer::DeformEnergy()(mesh, options2).execute();
+  std::cout << facet << std::endl;
 }
 
 int TestLoopSubdivision() {
@@ -104,7 +118,7 @@ int testGSN() {
   auto transformer = Hexer::GlobalOrientationAlign()(surface_mesh);
   hexer_timer([&]() { transformer.execute(); }, "Align operation ");
 
-  Hexer::DeformationOptions options;
+  Hexer::FacetNormalDeformOption options;
   options.sigma = 1;
   auto deformer = Hexer::GaussianSmoothFacetNormals()(surface_mesh, options);
   Eigen::Matrix3Xd gsn;
@@ -117,7 +131,24 @@ int testGSN() {
   return gui.launch();
 }
 
+int testPolyCubeOptimization() {
+  cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
+
+  Hexer::DeformEnergyOptions d_options;
+  Hexer::FacetNormalDeformOption f_options;
+
+  hexer_timer(
+      [&]() { Hexer::PolyCubeGen()(mesh, d_options, f_options).execute(); },
+      "PolyCube Gen ");
+
+  mesh.updateGL();
+  cinolib::GLcanvas gui;
+  gui.push(&mesh);
+  return gui.launch();
+}
+
 int main() {
-  TestGraphColoring();
+  testPolyCubeOptimization();
   return 1;
 }

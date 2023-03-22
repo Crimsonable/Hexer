@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 template <typename Functor> void hexer_timer(Functor &&f, const char *desc) {
   auto t1 = std::chrono::steady_clock::now();

@@ -4,8 +4,6 @@
 
 #include <eigen3/Eigen/Cholesky>
 #include <eigen3/Eigen/Dense>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/spdlog.h>
 
 namespace Hexer {
 struct BFGSOptions {
