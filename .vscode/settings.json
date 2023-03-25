@@ -125,7 +125,8 @@
         "__node_handle": "cpp",
         "hash_map": "cpp",
         "sparsecore": "cpp",
-        "execution": "cpp"
+        "execution": "cpp",
+        "jacobi": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {

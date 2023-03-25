@@ -5,7 +5,6 @@
 
 #include <cinolib/meshes/meshes.h>
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
-#include <execution>
 #include <numeric>
 #include <range/v3/all.hpp>
 
@@ -375,7 +374,8 @@ public:
 template <typename DeformE, typename FacetE>
 struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
   MeshDeformFunctor(DeformE &deformE, FacetE &facetE)
-      : _deformE(deformE), _facetE(facetE) {}
+      : Functor<double, Eigen::Dynamic, 1>(Eigen::Dynamic, 1),
+        _deformE(deformE), _facetE(facetE) {}
 
   int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) {
     fvec[0] = _deformE.execute() + _facetE.execute();
@@ -395,19 +395,19 @@ public:
             DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
     auto deform_op = DeformEnergy()(mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(mesh, f_options);
-    auto functor = MeshDeformFunctor(deform_op, facet_op);
+    auto functor_base = MeshDeformFunctor(deform_op, facet_op);
+    auto functor = Eigen::NumericalDiff<decltype(functor_base)>(functor_base);
 
-    Eigen::HybridNonLinearSolver<decltype(functor)> solver(functor);
+    Eigen::LevenbergMarquardt<decltype(functor)> solver(functor);
     Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
         mesh.vector_verts().data()->ptr(), mesh.num_verts());
-    auto info = solver.solveNumericalDiff(x);
 
-    auto status = solver.solveNumericalDiffInit(x);
+    auto status = solver.minimizeInit(x);
     do {
-      status = solver.solveNumericalDiffOneStep(x);
+      status = solver.minimizeOneStep(x);
       spdlog::info("iter: {} | TargetVal: {:03.2f}", solver.iter,
                    solver.fvec.sum());
-    } while (status == Eigen::HybridNonLinearSolverSpace::Running);
+    } while (status == Eigen::LevenbergMarquardtSpace::Running);
   }
 };
 
