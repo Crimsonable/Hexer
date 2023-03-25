@@ -4,6 +4,7 @@
 
 #include <eigen3/Eigen/Cholesky>
 #include <eigen3/Eigen/Dense>
+#include <omp.h>
 
 namespace Hexer {
 struct BFGSOptions {
@@ -12,6 +13,55 @@ struct BFGSOptions {
   double sigma = 0.4;
   double tol = 1e-6;
 };
+
+enum class DiffMode { Forward, Central };
+
+template <typename Func, DiffMode mode = DiffMode::Forward>
+int NumericalDiff(Func &&f, const Eigen::VectorXd &_x, Eigen::VectorXd &jac,
+                  double epsfcn = 0.0) {
+  using std::abs;
+  using std::sqrt;
+  /* Local variables */
+  double h;
+  int nfev = 0;
+  int n = _x.size();
+  const double eps =
+      sqrt(((std::max)(epsfcn, Eigen::NumTraits<double>::epsilon())));
+  Eigen::Vector<double, 1> val1, val2;
+  Eigen::VectorXd x = _x;
+  // TODO : we should do this only if the size is not already known
+  val1.resize(f.values());
+  val2.resize(f.values());
+
+  // initialization
+  if constexpr (mode == DiffMode::Forward) {
+    // compute f(x)
+    f(x, val1);
+  }
+
+// Function Body
+#pragma omp parallel for
+  for (int j = 0; j < n; ++j) {
+    h = eps * abs(x[j]);
+    if (h == 0.) {
+      h = eps;
+    }
+    if constexpr (mode == DiffMode::Forward) {
+      x[j] += h;
+      f(x, val2);
+      x[j] = _x[j];
+      jac.row(j) = (val2 - val1) / h;
+    } else {
+      x[j] += h;
+      f(x, val2);
+      x[j] -= 2 * h;
+      f(x, val1);
+      x[j] = _x[j];
+      jac.row(j) = (val2 - val1) / (2 * h);
+    }
+  }
+  return nfev;
+}
 
 template <typename Functor> class BFGS {
   using Scalar = typename Functor::Scalar;
@@ -24,6 +74,9 @@ public:
     gk.resize(m);
     pk.resize(m);
     _x.resize(m);
+
+    spdlog::drop("OptimalLog");
+    logger = spdlog::basic_logger_mt("OptimalLog", "logs/opt.txt", true);
   }
 
   int solve(Eigen::VectorX<Scalar> &x) {
@@ -38,13 +91,13 @@ public:
       pk = llt.solve(-gk);
 
       int m = 0;
-      Scalar new_f;
-      Scalar old_f;
+      Eigen::Vector<double, 1> new_f;
+      Eigen::Vector<double, 1> old_f;
       _functor(x, old_f);
       for (; m < 20; ++m) {
         _functor(x + std::pow(_options.rho, m) * pk, new_f);
-        if (new_f <=
-            old_f + _options.sigma * std::pow(_options.rho, m) * gk.dot(pk))
+        if (new_f[0] <=
+            old_f[0] + _options.sigma * std::pow(_options.rho, m) * gk.dot(pk))
           break;
       }
 
@@ -59,12 +112,9 @@ public:
         Bk += coeff1 * gk * gk.transpose() -
               coeff2 * Bk * pk * pk.transpose() * Bk;
       }
-#ifdef _DEBUG
+
       spdlog::get("OptimalLog")
-          ->info("iter: {} | TargetVal: {:03.2f} | x: "
-                 "({:03.2f},{:03.2f},{:03.2f})",
-                 k, old_f, x[0], x[1], x[2]);
-#endif
+          ->info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
 
       x = _x;
       k++;
@@ -81,9 +131,6 @@ private:
   Eigen::VectorX<Scalar> pk;
   Eigen::VectorX<Scalar> _x;
 
-#ifdef _DEBUG
-  std::shared_ptr<spdlog::logger> logger =
-      spdlog::basic_logger_mt("OptimalLog", "logs/opt.txt", true);
-#endif
+  std::shared_ptr<spdlog::logger> logger;
 };
 } // namespace Hexer

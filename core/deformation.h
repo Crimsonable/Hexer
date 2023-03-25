@@ -373,13 +373,17 @@ public:
 
 template <typename DeformE, typename FacetE>
 struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
-  MeshDeformFunctor(DeformE &deformE, FacetE &facetE)
-      : Functor<double, Eigen::Dynamic, 1>(Eigen::Dynamic, 1),
-        _deformE(deformE), _facetE(facetE) {}
+  MeshDeformFunctor(int input, DeformE &deformE, FacetE &facetE)
+      : Functor<double, Eigen::Dynamic, 1>(input, 1), _deformE(deformE),
+        _facetE(facetE) {}
 
-  int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) {
+  int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec) {
     fvec[0] = _deformE.execute() + _facetE.execute();
     return 0;
+  }
+
+  int df(const Eigen::VectorXd &x, Eigen::VectorXd &jac) {
+    return NumericalDiff(*this, x, jac);
   }
 
   DeformE &_deformE;
@@ -395,19 +399,20 @@ public:
             DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
     auto deform_op = DeformEnergy()(mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(mesh, f_options);
-    auto functor_base = MeshDeformFunctor(deform_op, facet_op);
-    auto functor = Eigen::NumericalDiff<decltype(functor_base)>(functor_base);
-
-    Eigen::LevenbergMarquardt<decltype(functor)> solver(functor);
+    auto functor = MeshDeformFunctor(mesh.num_verts(), deform_op, facet_op);
     Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
         mesh.vector_verts().data()->ptr(), mesh.num_verts());
 
-    auto status = solver.minimizeInit(x);
-    do {
-      status = solver.minimizeOneStep(x);
-      spdlog::info("iter: {} | TargetVal: {:03.2f}", solver.iter,
-                   solver.fvec.sum());
-    } while (status == Eigen::LevenbergMarquardtSpace::Running);
+    // Eigen::LevenbergMarquardt<decltype(functor)> solver(functor);
+    // auto status = solver.minimizeInit(x);
+    // do {
+    //   status = solver.minimizeOneStep(x);
+    //   spdlog::info("iter: {} | TargetVal: {:03.2f}", solver.iter,
+    //                solver.fvec.sum());
+    // } while (status == Eigen::LevenbergMarquardtSpace::Running);
+
+    BFGS<decltype(functor)> solver(functor);
+    solver.solve(x);
   }
 };
 
