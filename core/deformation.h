@@ -399,9 +399,9 @@ public:
             DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
     auto deform_op = DeformEnergy()(mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(mesh, f_options);
-    auto functor = MeshDeformFunctor(mesh.num_verts(), deform_op, facet_op);
+    auto functor = MeshDeformFunctor(mesh.num_verts() * 3, deform_op, facet_op);
     Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
-        mesh.vector_verts().data()->ptr(), mesh.num_verts());
+        mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
 
     // Eigen::LevenbergMarquardt<decltype(functor)> solver(functor);
     // auto status = solver.minimizeInit(x);
