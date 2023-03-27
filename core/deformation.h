@@ -267,7 +267,7 @@ public:
 
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
-            FacetNormalDeformOption options) {
+            FacetNormalDeformOption options, const Eigen::VectorXd &x) {
     if (_gsn.size() == 0) {
       auto surface_mesh = Convert2SurfaceMesh()(mesh).execute();
       _gsn = GaussianSmoothFacetNormals()(surface_mesh, options).execute();
@@ -286,13 +286,11 @@ public:
       }
     }
     for (const auto &[i, fid] : _index | ranges::views::enumerate) {
-      cinolib::vec3d v0 = mesh.vert(fid[0]);
-      cinolib::vec3d v1 = mesh.vert(fid[1]);
-      cinolib::vec3d v2 = mesh.vert(fid[2]);
+      auto v0 = x.block<3, 1>(fid[0] * 3, 0);
+      auto v1 = x.block<3, 1>(fid[1] * 3, 0);
+      auto v2 = x.block<3, 1>(fid[2] * 3, 0);
 
-      cinolib::vec3d n = (v1 - v0).cross(v2 - v0);
-      Eigen::Vector3d *n_ptr = reinterpret_cast<Eigen::Vector3d *>(&n);
-      _normals.col(i) = n_ptr->normalized();
+      _normals.col(i) = (v1 - v0).cross(v2 - v0).normalized();
     }
     return (_normals - _gsn).colwise().squaredNorm().sum();
   }
@@ -319,24 +317,17 @@ public:
             std::forward<decltype(args)>(args)...) {}
 
   // poly's deformation affine matrix is [vp-vq | vp-vr | vp-vs]
-  template <typename M, typename V, typename E, typename P>
-  HEXER_INLINE auto
-  poly_affine(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh, int pid,
-              Eigen::Matrix3Xd &mat) {
-    auto &adj_p2v = mesh.adj_p2v(pid);
+  HEXER_INLINE auto poly_affine(const Eigen::VectorXd &x, int pid,
+                                const std::vector<uint> &adj_p2v,
+                                Eigen::Matrix3Xd &mat) {
     for (int i = 0; i < adj_p2v.size() - 1; ++i)
-      mat.block<3, 3>(0, 3 * pid).col(i) =
-          *reinterpret_cast<Eigen::Vector3d *>(
-              &(const_cast<cinolib::AbstractPolyhedralMesh<M, V, E, P> *>(&mesh)
-                    ->vert(adj_p2v[0]))) -
-          *reinterpret_cast<Eigen::Vector3d *>(
-              &(const_cast<cinolib::AbstractPolyhedralMesh<M, V, E, P> *>(&mesh)
-                    ->vert(adj_p2v[i + 1])));
+      mat.block<3, 3>(0, 3 * pid).col(i) = x.block<3, 1>(3 * adj_p2v[0], 0) -
+                                           x.block<3, 1>(3 * adj_p2v[i + 1], 0);
   }
 
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
-            DeformEnergyOptions options) {
+            DeformEnergyOptions options, const Eigen::VectorXd &x) {
 
     // A_0 is constant during the calculation, if A_0's size equals to 0, then
     // calculate A_0 once.
@@ -347,14 +338,14 @@ public:
 
       for (int pid = 0; pid < mesh.num_polys(); ++pid) {
         A_1.block<3, 3>(0, pid * 3) = Eigen::Matrix3d::Identity();
-        poly_affine(mesh, pid, A_0);
+        poly_affine(x, pid, mesh.adj_p2v(pid), A_0);
         A_0.block<3, 3>(0, 3 * pid) =
             A_0.block<3, 3>(0, 3 * pid).inverse().eval();
       }
     }
 
     for (int pid = 0; pid < mesh.num_polys(); ++pid) {
-      poly_affine(mesh, pid, A_1);
+      poly_affine(x, pid, mesh.adj_p2v(pid), A_1);
       auto A_expr = A_1.block<3, 3>(0, pid * 3) * A_0.block<3, 3>(0, pid * 3);
       auto A_inv = A_expr.inverse();
       double conformal =
@@ -378,7 +369,7 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
         _facetE(facetE) {}
 
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec) {
-    fvec[0] = _deformE.execute() + _facetE.execute();
+    fvec[0] = _deformE.execute(x) + _facetE.execute(x);
     return 0;
   }
 

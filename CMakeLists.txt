@@ -2,16 +2,17 @@
 
 project ("Hexer")
 
-set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
-#set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
-set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
-#set(OpenVolumeMesh_DIR "D:/codes/OVM/lib/cmake/OpenVolumeMesh")
-set(cinolib_DIR "A:/MeshGeneration/cinolib")
-#set(cinolib_DIR "D:/codes/cinolib")
+#set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
+set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
+#set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
+set(OpenVolumeMesh_DIR "D:/codes/OVM/lib/cmake/OpenVolumeMesh")
+#set(cinolib_DIR "A:/MeshGeneration/cinolib")
+set(cinolib_DIR "D:/codes/cinolib")
 
 add_definitions(-D_USE_MATH_DEFINES)
 set(CINOLIB_USES_OPENGL_GLFW_IMGUI ON)
 set(CINOLIB_USES_VTK ON)
+set(CINOLIB_USES_TETGEN ON)
 
 #find_package(OpenVolumeMesh CONFIG REQUIRED)
 #find_package(OpenMesh CONFIG REQUIRED)

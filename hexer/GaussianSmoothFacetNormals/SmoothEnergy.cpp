@@ -3,6 +3,7 @@
 
 #include <cinolib/gl/glcanvas.h>
 #include <cinolib/meshes/meshes.h>
+#include <cinolib/tetgen_wrap.h>
 
 #include "test_utility.h"
 #include <core/hexer_core.h>
@@ -32,7 +33,7 @@ void applyColorByGauassianNormal(cinolib::DrawablePolygonmesh<> &mesh,
   }
 }
 
-void MeshAlign(cinolib::Polyhedralmesh<> &mesh) {
+void MeshAlign(cinolib::AbstractPolyhedralMesh<> &mesh) {
   auto surface_mesh = Hexer::Convert2SurfaceMesh()(mesh).execute();
   auto euler = Hexer::GlobalOrientationAlign()(surface_mesh).execute();
   Eigen::AngleAxisd rotation;
@@ -42,6 +43,21 @@ void MeshAlign(cinolib::Polyhedralmesh<> &mesh) {
   mesh.rotate(axis, rotation.angle());
 }
 
+auto TetGenSphere() {
+  cinolib::Polygonmesh<> sphere_surface =
+      Hexer::LoopSubdivision()(unitOctahedron(), 3).execute();
+  projectUnitSphere(sphere_surface);
+  cinolib::DrawablePolygonmesh<> surface_mesh(sphere_surface.vector_verts(),
+                                              sphere_surface.vector_polys());
+  std::vector<cinolib::vec3d> v_out;
+  std::vector<uint> e_in, p_out;
+  cinolib::tetgen_wrap(surface_mesh.vector_verts(), surface_mesh.vector_polys(),
+                       e_in, "", v_out, p_out);
+  cinolib::DrawableTetmesh<> tet_mesh(v_out, p_out);
+
+  return tet_mesh;
+}
+
 void TestEnergy() {
   cinolib::Polyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
   MeshAlign(mesh);
@@ -49,8 +65,10 @@ void TestEnergy() {
   Hexer::FacetNormalDeformOption options;
   Hexer::DeformEnergyOptions options2;
   options.sigma = 1;
-  auto facet = Hexer::FacetNormalsEnergy()(mesh, options).execute() +
-               Hexer::DeformEnergy()(mesh, options2).execute();
+  Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
+      mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
+  auto facet = Hexer::FacetNormalsEnergy()(mesh, options).execute(x) +
+               Hexer::DeformEnergy()(mesh, options2).execute(x);
   std::cout << facet << std::endl;
 }
 
@@ -132,7 +150,7 @@ int testGSN() {
 }
 
 int testPolyCubeOptimization() {
-  cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  auto mesh = TetGenSphere();
   hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
 
   Hexer::DeformEnergyOptions d_options;
