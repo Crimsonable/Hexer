@@ -40,7 +40,7 @@ int NumericalDiff(Func &&f, const Eigen::VectorXd &_x, Eigen::VectorXd &jac,
   }
 
 // Function Body
-#pragma omp parallel for
+//#pragma omp parallel for firstprivate(x)
   for (int j = 0; j < n; ++j) {
     h = eps * abs(x[j]);
     if (h == 0.) {
@@ -113,8 +113,9 @@ public:
               coeff2 * Bk * pk * pk.transpose() * Bk;
       }
 
-      spdlog::get("OptimalLog")
-          ->info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
+      // spdlog::get("OptimalLog")
+      //     ->info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
+      spdlog::info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
 
       x = _x;
       k++;

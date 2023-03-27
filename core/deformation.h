@@ -256,7 +256,6 @@ class FacetNormalsEnergy
     : public CrtpExprBase<device, FacetNormalsEnergy<device, ParamTuple>,
                           ParamTuple> {
   Eigen::Matrix3Xd _gsn;
-  Eigen::Matrix3Xd _normals;
   std::vector<cinolib::vec3u> _index;
 
 public:
@@ -273,7 +272,6 @@ public:
       _gsn = GaussianSmoothFacetNormals()(surface_mesh, options).execute();
       auto index_raw = mesh.get_surface_faces();
       _index.reserve(index_raw.size() * 3);
-      _normals.resize(3, index_raw.size());
 
       for (auto &f : index_raw) {
         cinolib::vec3u v_tmp;
@@ -285,14 +283,17 @@ public:
         _index.push_back(v_tmp);
       }
     }
+
+    double n_gsn = 0;
     for (const auto &[i, fid] : _index | ranges::views::enumerate) {
       auto v0 = x.block<3, 1>(fid[0] * 3, 0);
       auto v1 = x.block<3, 1>(fid[1] * 3, 0);
       auto v2 = x.block<3, 1>(fid[2] * 3, 0);
 
-      _normals.col(i) = (v1 - v0).cross(v2 - v0).normalized();
+      n_gsn +=
+          ((v1 - v0).cross(v2 - v0).normalized() - _gsn.col(i)).squaredNorm();
     }
-    return (_normals - _gsn).colwise().squaredNorm().sum();
+    return n_gsn;
   }
 };
 
@@ -307,8 +308,6 @@ class DeformEnergy
                           ParamTuple> {
 
   Eigen::Matrix3Xd A_0;
-  Eigen::Matrix3Xd A_1;
-  Eigen::VectorXd energy;
 
 public:
   template <typename... Args>
@@ -317,12 +316,18 @@ public:
             std::forward<decltype(args)>(args)...) {}
 
   // poly's deformation affine matrix is [vp-vq | vp-vr | vp-vs]
+  template <typename Mat>
   HEXER_INLINE auto poly_affine(const Eigen::VectorXd &x, int pid,
                                 const std::vector<uint> &adj_p2v,
-                                Eigen::Matrix3Xd &mat) {
+                                Eigen::MatrixBase<Mat> &mat) {
     for (int i = 0; i < adj_p2v.size() - 1; ++i)
-      mat.block<3, 3>(0, 3 * pid).col(i) = x.block<3, 1>(3 * adj_p2v[0], 0) -
-                                           x.block<3, 1>(3 * adj_p2v[i + 1], 0);
+      if constexpr (mat.RowsAtCompileTime == 3 && mat.ColsAtCompileTime == 3)
+        mat.col(i) = x.block<3, 1>(3 * adj_p2v[0], 0) -
+                     x.block<3, 1>(3 * adj_p2v[i + 1], 0);
+      else
+        mat.block<3, 3>(0, 3 * pid).col(i) =
+            x.block<3, 1>(3 * adj_p2v[0], 0) -
+            x.block<3, 1>(3 * adj_p2v[i + 1], 0);
   }
 
   template <typename M, typename V, typename E, typename P>
@@ -333,20 +338,19 @@ public:
     // calculate A_0 once.
     if (A_0.size() == 0) {
       A_0.resize(3, mesh.num_polys() * 3);
-      A_1.resize(3, mesh.num_polys() * 3);
-      energy.resize(mesh.num_polys(), 1);
 
       for (int pid = 0; pid < mesh.num_polys(); ++pid) {
-        A_1.block<3, 3>(0, pid * 3) = Eigen::Matrix3d::Identity();
         poly_affine(x, pid, mesh.adj_p2v(pid), A_0);
         A_0.block<3, 3>(0, 3 * pid) =
             A_0.block<3, 3>(0, 3 * pid).inverse().eval();
       }
     }
 
+    double energy = 0;
     for (int pid = 0; pid < mesh.num_polys(); ++pid) {
+      Eigen::Matrix3d A_1;
       poly_affine(x, pid, mesh.adj_p2v(pid), A_1);
-      auto A_expr = A_1.block<3, 3>(0, pid * 3) * A_0.block<3, 3>(0, pid * 3);
+      auto A_expr = A_1 * A_0.block<3, 3>(0, pid * 3);
       auto A_inv = A_expr.inverse();
       double conformal =
           0.125 * (std::sqrt((A_expr.transpose() * A_expr).trace()) *
@@ -354,11 +358,11 @@ public:
                    1);
       double A_det = A_expr.determinant();
       double volumetric = 0.5 * (A_det + 1.0 / A_det);
-      energy.coeffRef(pid) = std::exp(
+      energy += std::exp(
           options.s * (options.alpha * conformal + options.alpha * volumetric));
     }
 
-    return energy.sum();
+    return energy;
   }
 };
 
