@@ -150,8 +150,11 @@ int testGSN() {
 }
 
 int testPolyCubeOptimization() {
+  std::cout<<"rua0"<<std::endl;
   auto mesh = TetGenSphere();
+  std::cout<<"rua"<<std::endl;
   hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
+  std::cout<<"rua2"<<std::endl;
 
   Hexer::DeformEnergyOptions d_options;
   Hexer::FacetNormalDeformOption f_options;

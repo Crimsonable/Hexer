@@ -108,9 +108,9 @@ class LoopSubdivision
 public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractPolygonMesh<M, V, E, P> &mesh, int n) {
-    auto expr =
-        (LoopAux_addVertex()(mesh) | LoopAux_adjustVertex()(mesh.num_verts()));
-    cinolib::Polygonmesh<M, V, E, P> _mesh = expr.execute();
+    cinolib::Polygonmesh<M, V, E, P> _mesh =
+        (LoopAux_addVertex()(mesh) | LoopAux_adjustVertex()(mesh.num_verts()))
+            .execute();
     for (int i = 0; i < n - 1; ++i)
       _mesh = (LoopAux_addVertex()(_mesh) |
                LoopAux_adjustVertex()(_mesh.num_verts()))

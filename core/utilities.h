@@ -22,7 +22,7 @@ public:
              ranges::actions::sort([&](const auto &v1, const auto &v2) {
                return mesh.vert_valence(v1) > mesh.vert_valence(v2);
              });
-    else if (order == SortOrder::AscendOrder)
+    else
       return std::move(ids) |
              ranges::actions::sort([&](const auto &v1, const auto &v2) {
                return mesh.vert_valence(v1) < mesh.vert_valence(v2);

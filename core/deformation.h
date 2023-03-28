@@ -353,9 +353,7 @@ public:
       auto A_expr = A_1 * A_0.block<3, 3>(0, pid * 3);
       auto A_inv = A_expr.inverse();
       double conformal =
-          0.125 * (std::sqrt((A_expr.transpose() * A_expr).trace()) *
-                       std::sqrt((A_inv.transpose() * A_inv).trace()) -
-                   1);
+          0.125 * (A_expr.squaredNorm() * A_inv.squaredNorm() - 1);
       double A_det = A_expr.determinant();
       double volumetric = 0.5 * (A_det + 1.0 / A_det);
       energy += std::exp(
@@ -408,6 +406,11 @@ public:
 
     BFGS<decltype(functor)> solver(functor);
     solver.solve(x);
+    for (int i = 0; i < mesh.num_verts(); ++i) {
+      mesh.vert(i)[0] = x[3 * i];
+      mesh.vert(i)[1] = x[3 * i + 1];
+      mesh.vert(i)[2] = x[3 * i + 2];
+    }
   }
 };
 
