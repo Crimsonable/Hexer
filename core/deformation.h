@@ -256,7 +256,7 @@ class FacetNormalsEnergy
     : public CrtpExprBase<device, FacetNormalsEnergy<device, ParamTuple>,
                           ParamTuple> {
   Eigen::Matrix3Xd _gsn;
-  std::vector<cinolib::vec3u> _index;
+  std::map<int, int> _face_map;
 
 public:
   template <typename... Args>
@@ -264,35 +264,41 @@ public:
       : CrtpExprBase<device, FacetNormalsEnergy<device, ParamTuple>,
                      ParamTuple>(std::forward<decltype(args)>(args)...) {}
 
-  template <typename M, typename V, typename E, typename P>
-  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
+  template <typename M, typename V, typename E, typename F, typename P>
+  HEXER_INLINE auto
+  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+       FacetNormalDeformOption options, Eigen::VectorXd &x, uint pid) {
+    double n_gsn = 0.0;
+    for (auto f : mesh.poly_faces_id(pid))
+      if (mesh.face_data(f).flags[0]) {
+        auto &vid = mesh.adj_f2v(f);
+        auto v0 = x.block<3, 1>(vid[0] * 3, 0);
+        auto v1 = x.block<3, 1>(vid[1] * 3, 0);
+        auto v2 = x.block<3, 1>(vid[2] * 3, 0);
+
+        n_gsn +=
+            ((v1 - v0).cross(v2 - v0).normalized() - _gsn.col(_face_map[f]))
+                .squaredNorm();
+      }
+    return n_gsn;
+  }
+
+  template <typename M, typename V, typename E, typename F, typename P>
+  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
             FacetNormalDeformOption options, const Eigen::VectorXd &x) {
     if (_gsn.size() == 0) {
       auto surface_mesh = Convert2SurfaceMesh()(mesh).execute();
       _gsn = GaussianSmoothFacetNormals()(surface_mesh, options).execute();
       auto index_raw = mesh.get_surface_faces();
-      _index.reserve(index_raw.size() * 3);
 
-      for (auto &f : index_raw) {
-        cinolib::vec3u v_tmp;
-        int count = 0;
-        for (const auto &v : mesh.face_verts_id(f)) {
-          v_tmp[count] = v;
-          count++;
-        }
-        _index.push_back(v_tmp);
-      }
+      for (const auto &[i, f] : index_raw | ranges::views::enumerate)
+        _face_map[f] = i;
     }
 
     double n_gsn = 0;
-    for (const auto &[i, fid] : _index | ranges::views::enumerate) {
-      auto v0 = x.block<3, 1>(fid[0] * 3, 0);
-      auto v1 = x.block<3, 1>(fid[1] * 3, 0);
-      auto v2 = x.block<3, 1>(fid[2] * 3, 0);
+    for (int pid = 0; pid < mesh.num_polys(); ++pid)
+      n_gsn += this->eval(mesh, options, x, pid);
 
-      n_gsn +=
-          ((v1 - v0).cross(v2 - v0).normalized() - _gsn.col(i)).squaredNorm();
-    }
     return n_gsn;
   }
 };
@@ -329,9 +335,23 @@ public:
             x.block<3, 1>(3 * adj_p2v[0], 0) -
             x.block<3, 1>(3 * adj_p2v[i + 1], 0);
   }
+  template <typename M, typename V, typename E, typename F, typename P>
+  HEXER_INLINE auto
+  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+       DeformEnergyOptions options, const Eigen::VectorXd x, uint pid) {
+    Eigen::Matrix3d A_1;
+    poly_affine(x, pid, mesh.adj_p2v(pid), A_1);
+    auto A_expr = A_1 * A_0.block<3, 3>(0, pid * 3);
+    auto A_inv = A_expr.inverse();
+    double conformal = 0.125 * (A_expr.squaredNorm() * A_inv.squaredNorm() - 1);
+    double A_det = A_expr.determinant();
+    double volumetric = 0.5 * (A_det + 1.0 / A_det);
+    return std::exp(options.s *
+                    (options.alpha * conformal + options.alpha * volumetric));
+  }
 
-  template <typename M, typename V, typename E, typename P>
-  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
+  template <typename M, typename V, typename E, typename F, typename P>
+  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
             DeformEnergyOptions options, const Eigen::VectorXd &x) {
 
     // A_0 is constant during the calculation, if A_0's size equals to 0, then
@@ -347,31 +367,30 @@ public:
     }
 
     double energy = 0;
-    for (int pid = 0; pid < mesh.num_polys(); ++pid) {
-      Eigen::Matrix3d A_1;
-      poly_affine(x, pid, mesh.adj_p2v(pid), A_1);
-      auto A_expr = A_1 * A_0.block<3, 3>(0, pid * 3);
-      auto A_inv = A_expr.inverse();
-      double conformal =
-          0.125 * (A_expr.squaredNorm() * A_inv.squaredNorm() - 1);
-      double A_det = A_expr.determinant();
-      double volumetric = 0.5 * (A_det + 1.0 / A_det);
-      energy += std::exp(
-          options.s * (options.alpha * conformal + options.alpha * volumetric));
-    }
+    for (int pid = 0; pid < mesh.num_polys(); ++pid)
+      energy += this->eval(mesh, options, x, pid);
 
     return energy;
   }
 };
 
-template <typename DeformE, typename FacetE>
+template <typename Mesh, typename DeformE, typename FacetE>
 struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
-  MeshDeformFunctor(int input, DeformE &deformE, FacetE &facetE)
-      : Functor<double, Eigen::Dynamic, 1>(input, 1), _deformE(deformE),
-        _facetE(facetE) {}
+  MeshDeformFunctor(Mesh &mesh, DeformE &deformE, FacetE &facetE)
+      : _mesh(mesh), Functor<double, Eigen::Dynamic, 1>(mesh.num_verts() * 3,
+                                                        1),
+        _deformE(deformE), _facetE(facetE) {}
 
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec) {
-    fvec[0] = _deformE.execute(x) + _facetE.execute(x);
+    fvec[0] = 0;
+    for (int pid = 0; pid < mesh.num_polys(); ++pid) {
+      double deform_e = 0, normal_e = 0;
+      if (_mesh.poly_data(pid).flags[0])
+        normal_e = _facetE.execute(x, pid);
+      deform_e = _deformE.execute(x, pid);
+      fvec[0] += deform_e +
+                 std::min(std::max(normal_e / deform_e, 1e3), 1e16) * normal_e;
+    }
     return 0;
   }
 
@@ -379,6 +398,7 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
     return NumericalDiff(*this, x, jac);
   }
 
+  Mesh &_mesh;
   DeformE &_deformE;
   FacetE &_facetE;
 };
@@ -387,8 +407,8 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class PolyCubeGen
     : public CrtpExprBase<device, PolyCubeGen<device, ParamTuple>, ParamTuple> {
 public:
-  template <typename M, typename V, typename E, typename P>
-  auto eval(cinolib::AbstractPolyhedralMesh<M, V, E, P> &mesh,
+  template <typename M, typename V, typename E, typename F, typename P>
+  auto eval(cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
             DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
     auto deform_op = DeformEnergy()(mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(mesh, f_options);
