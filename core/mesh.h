@@ -39,4 +39,18 @@ public:
   }
 };
 
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class PolyhedralSurfMarker
+    : public CrtpExprBase<device, PolyhedralSurfMarker<device, ParamTuple>,
+                          ParamTuple> {
+public:
+  template <typename M, typename V, typename E, typename F, typename P>
+  auto eval(cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh) {
+    for (auto &fid : mesh.get_surface_faces()) {
+      mesh.face_data(fid).flags[0] = 1;
+      mesh.poly_data(mesh.adj_f2p(fid)[0]).flags[0] = 1;
+    }
+  }
+};
+
 } // namespace Hexer

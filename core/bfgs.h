@@ -16,7 +16,7 @@ struct BFGSOptions {
 
 enum class DiffMode { Forward, Central };
 
-template <typename Func, DiffMode mode = DiffMode::Forward>
+template <DiffMode mode, typename Func>
 int NumericalDiff(Func &&f, const Eigen::VectorXd &_x, Eigen::VectorXd &jac,
                   double epsfcn = 0.0) {
   using std::abs;

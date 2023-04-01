@@ -12,7 +12,7 @@ namespace Hexer {
 enum class SmoothMethod { UNIFORM, COTANGENT };
 
 struct LaplacianOptions {
-  uint n_smooth = 1;
+  int n_smooth = 1;
   double lambda = 0.001;
   SmoothMethod method = SmoothMethod::UNIFORM;
 };
@@ -20,11 +20,11 @@ struct LaplacianOptions {
 class UniformWeighter {
 public:
   template <typename M, typename V, typename E, typename P>
-  void operator()(std::vector<Eigen::Triplet<double>> &entries, uint nv,
-                  uint current_vid,
+  void operator()(std::vector<Eigen::Triplet<double>> &entries, int nv,
+                  int current_vid,
                   const cinolib::AbstractMesh<M, V, E, P> &mesh) {
     auto ring = mesh.vert_n_ring(current_vid, 1);
-    std::vector<uint> offset;
+    std::vector<int> offset;
 
     for (int i = 0; i < nv; ++i)
       offset.push_back(i * mesh.num_verts());
@@ -42,19 +42,19 @@ public:
 class CotangentWeighter {
 public:
   template <typename M, typename V, typename E, typename P>
-  void operator()(std::vector<Eigen::Triplet<double>> &entries, uint nv,
-                  uint current_vid, const cinolib::Trimesh<M, V, E, P> &mesh) {
-    std::vector<uint> offset;
+  void operator()(std::vector<Eigen::Triplet<double>> &entries, int nv,
+                  int current_vid, const cinolib::Trimesh<M, V, E, P> &mesh) {
+    std::vector<int> offset;
     for (int i = 0; i < nv; ++i)
       offset.push_back(i * mesh.num_verts());
 
     // caculate cotangent weight using cinolib internal function
-    std::vector<std::pair<uint, double>> weight;
+    std::vector<std::pair<int, double>> weight;
     mesh.vert_weights_cotangent(current_vid, weight);
 
     double sum =
         std::accumulate(weight.begin(), weight.end(), 0.0,
-                        [](double w1, const std::pair<uint, double> &w) {
+                        [](double w1, const std::pair<int, double> &w) {
                           return w1 + w.second;
                         });
 
@@ -71,8 +71,8 @@ public:
 class AverageWeighter {
 public:
   template <typename M, typename V, typename E, typename P>
-  void operator()(std::vector<Eigen::Triplet<double>> &entries, uint nv,
-                  uint current_vid, const cinolib::Trimesh<M, V, E, P> &mesh) {}
+  void operator()(std::vector<Eigen::Triplet<double>> &entries, int nv,
+                  int current_vid, const cinolib::Trimesh<M, V, E, P> &mesh) {}
 };
 
 // caculate Laplacian matrix using given method(cotangent,uniform)
@@ -84,13 +84,13 @@ public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const LaplacianOptions &options,
                    cinolib::AbstractMesh<M, V, E, P> &mesh) {
-    uint n = mesh.num_verts();
+    int n = mesh.num_verts();
     auto Laplacian = Eigen::SparseMatrix<double>(n * 3, n * 3);
     std::vector<Eigen::Triplet<double>> entries;
 
     if (options.method == SmoothMethod::UNIFORM) {
       auto weighter = UniformWeighter();
-      for (uint vid = 0; vid < mesh.num_verts(); ++vid) {
+      for (int vid = 0; vid < mesh.num_verts(); ++vid) {
         weighter(entries, 3, vid, mesh);
       }
     } else if (options.method == SmoothMethod::COTANGENT) {
@@ -102,7 +102,7 @@ public:
                "mesh is not trimesh, doesn't support cotangent weight.");
       }
       auto weighter = CotangentWeighter();
-      for (uint vid = 0; vid < tri_mesh->num_verts(); ++vid) {
+      for (int vid = 0; vid < tri_mesh->num_verts(); ++vid) {
         weighter(entries, 3, vid, *tri_mesh);
       }
     }
@@ -122,7 +122,7 @@ public:
                    Eigen::SparseMatrix<double> &&Laplacian,
                    cinolib::AbstractMesh<M, V, E, P> &mesh) {
     std::vector<double> vertices_coords;
-    uint n = mesh.num_verts();
+    int n = mesh.num_verts();
     vertices_coords.resize(n * 3);
 
     for (int vid = 0; vid < n; ++vid) {
@@ -154,7 +154,7 @@ struct FacetNormalDeformOption {
 
 template <typename M, typename V, typename E, typename P>
 inline auto poly_centroid(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
-                          uint fid) {
+                          int fid) {
   auto tmp = mesh.poly_centroid(fid);
   Eigen::Vector3d p;
 
@@ -171,7 +171,7 @@ class GaussianDistanceWeight
                           ParamTuple> {
 public:
   auto eval(const Eigen::Matrix3Xd &normals, const Eigen::Matrix3Xd &centers,
-            const Eigen::VectorXd &areas, double sigma, uint fid) {
+            const Eigen::VectorXd &areas, double sigma, int fid) {
     Eigen::Vector3d gn{0, 0, 0};
 
     auto poly_center_minus =
@@ -236,10 +236,10 @@ auto GaussianSmoothFacetNormals_naive(
   gsn.resize(3, mesh.num_polys());
   auto ns = mesh.vector_poly_normals();
 
-  for (uint fid = 0; fid < mesh.num_polys(); ++fid) {
+  for (int fid = 0; fid < mesh.num_polys(); ++fid) {
     cinolib::vec3d n{0, 0, 0};
     Eigen::Vector3d p = poly_centroid(mesh, fid);
-    for (uint fid2 = 0; fid2 < mesh.num_polys(); ++fid2) {
+    for (int fid2 = 0; fid2 < mesh.num_polys(); ++fid2) {
       Eigen::Vector3d p2 = poly_centroid(mesh, fid);
       n = n +
           mesh.poly_area(fid2) * std::exp(-0.5 * (p2 - p).norm()) * ns[fid2];
@@ -267,7 +267,7 @@ public:
   template <typename M, typename V, typename E, typename F, typename P>
   HEXER_INLINE auto
   eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       FacetNormalDeformOption options, Eigen::VectorXd &x, uint pid) {
+       FacetNormalDeformOption options, const Eigen::VectorXd &x, int pid) {
     double n_gsn = 0.0;
     for (auto f : mesh.poly_faces_id(pid))
       if (mesh.face_data(f).flags[0]) {
@@ -338,7 +338,7 @@ public:
   template <typename M, typename V, typename E, typename F, typename P>
   HEXER_INLINE auto
   eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       DeformEnergyOptions options, const Eigen::VectorXd x, uint pid) {
+       DeformEnergyOptions options, const Eigen::VectorXd &x, int pid) {
     Eigen::Matrix3d A_1;
     poly_affine(x, pid, mesh.adj_p2v(pid), A_1);
     auto A_expr = A_1 * A_0.block<3, 3>(0, pid * 3);
@@ -381,21 +381,35 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
                                                         1),
         _deformE(deformE), _facetE(facetE) {}
 
+  HEXER_INLINE double evalOnePoly(const Eigen::VectorXd &x, int pid) {
+    double normal_e = 0.0, deform_e = 0.0;
+    if (_mesh.poly_data(pid).flags[0])
+      normal_e = _facetE.execute(x, pid);
+    deform_e = _deformE.execute(x, pid);
+    // return deform_e +
+    //        std::min(std::max(normal_e / deform_e, 1e3), 1e16) * normal_e;
+    return deform_e + normal_e;
+  }
+
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec) {
     fvec[0] = 0;
-    for (int pid = 0; pid < mesh.num_polys(); ++pid) {
-      double deform_e = 0, normal_e = 0;
-      if (_mesh.poly_data(pid).flags[0])
-        normal_e = _facetE.execute(x, pid);
-      deform_e = _deformE.execute(x, pid);
-      fvec[0] += deform_e +
-                 std::min(std::max(normal_e / deform_e, 1e3), 1e16) * normal_e;
-    }
+    for (int pid = 0; pid < _mesh.num_polys(); ++pid)
+      fvec[0] += evalOnePoly(x, pid);
+
+    return 0;
+  }
+
+  int f_evalOne(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec,
+                int vid) {
+    fvec[0] = 0;
+    for (auto &pid : _mesh.adj_v2p(vid))
+      fvec[0] += evalOnePoly(x, pid);
+
     return 0;
   }
 
   int df(const Eigen::VectorXd &x, Eigen::VectorXd &jac) {
-    return NumericalDiff(*this, x, jac);
+    return NumericalDiff<DiffMode::Forward>(*this, x, jac);
   }
 
   Mesh &_mesh;
@@ -412,9 +426,13 @@ public:
             DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
     auto deform_op = DeformEnergy()(mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(mesh, f_options);
-    auto functor = MeshDeformFunctor(mesh.num_verts() * 3, deform_op, facet_op);
+    auto functor = MeshDeformFunctor(mesh, deform_op, facet_op);
     Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
         mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
+
+    PolyhedralSurfMarker()(mesh).execute();
+    deform_op.execute(x);
+    facet_op.execute(x);
 
     // Eigen::LevenbergMarquardt<decltype(functor)> solver(functor);
     // auto status = solver.minimizeInit(x);
