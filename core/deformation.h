@@ -388,7 +388,7 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
     deform_e = _deformE.execute(x, pid);
     // return deform_e +
     //        std::min(std::max(normal_e / deform_e, 1e3), 1e16) * normal_e;
-    return deform_e + normal_e;
+    return normal_e + deform_e;
   }
 
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec) {
@@ -409,7 +409,7 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
   }
 
   int df(const Eigen::VectorXd &x, Eigen::VectorXd &jac) {
-    return NumericalDiff<DiffMode::Forward>(*this, x, jac);
+    return NumericalDiff<DiffMode::Central>(*this, x, jac);
   }
 
   Mesh &_mesh;

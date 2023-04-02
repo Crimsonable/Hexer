@@ -150,11 +150,11 @@ int testGSN() {
 }
 
 int testPolyCubeOptimization() {
-  std::cout<<"rua0"<<std::endl;
+  std::cout << "rua0" << std::endl;
   auto mesh = TetGenSphere();
-  std::cout<<"rua"<<std::endl;
+  std::cout << "rua" << std::endl;
   hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
-  std::cout<<"rua2"<<std::endl;
+  std::cout << "rua2" << std::endl;
 
   Hexer::DeformEnergyOptions d_options;
   Hexer::FacetNormalDeformOption f_options;
@@ -169,7 +169,24 @@ int testPolyCubeOptimization() {
   return gui.launch();
 }
 
+void test_adj_v2p() {
+  auto mesh = TetGenSphere();
+  int count = 0;
+  int count_min = 10000;
+  for (int vid = 0; vid < mesh.num_verts(); ++vid) {
+    if (mesh.adj_v2p(vid).size() > count)
+      count = mesh.adj_v2p(vid).size();
+    if (mesh.adj_v2p(vid).size() < count_min)
+      count_min = mesh.adj_v2p(vid).size();
+  }
+  std::cout << count << std::endl;
+  std::cout << count_min << std::endl;
+  std::cout<<mesh.vert(0)<<std::endl;
+}
+
 int main() {
   testPolyCubeOptimization();
+  //test_adj_v2p();
+  //TestLoopSubdivision();
   return 1;
 }
