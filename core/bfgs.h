@@ -39,8 +39,8 @@ int NumericalDiff(Func &&f, const Eigen::VectorXd &_x, Eigen::VectorXd &jac,
     f(x, val1);
   }
 
-// Function Body
-//#pragma omp parallel for firstprivate(x, val1, val2, h)
+  // Function Body
+  // #pragma omp parallel for firstprivate(x, val1, val2, h)
   for (int j = 0; j < n; ++j) {
     h = eps * abs(x[j]);
     if (h == 0.) {
@@ -79,7 +79,7 @@ public:
     logger = spdlog::basic_logger_mt("OptimalLog", "logs/opt.txt", true);
   }
 
-  int solve(Eigen::VectorX<Scalar> &x) {
+  template <typename VecX> int solve(VecX &x) {
     Bk = Eigen::MatrixX<Scalar>::Identity(x.rows(), x.rows());
     int k = 0;
 

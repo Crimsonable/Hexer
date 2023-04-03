@@ -427,28 +427,15 @@ public:
     auto deform_op = DeformEnergy()(mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(mesh, f_options);
     auto functor = MeshDeformFunctor(mesh, deform_op, facet_op);
-    Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
-        mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
+    auto x = Eigen::Map<Eigen::VectorXd>(mesh.vector_verts().data()->ptr(),
+                                         mesh.num_verts() * 3);
 
     PolyhedralSurfMarker()(mesh).execute();
     deform_op.execute(x);
     facet_op.execute(x);
 
-    // Eigen::LevenbergMarquardt<decltype(functor)> solver(functor);
-    // auto status = solver.minimizeInit(x);
-    // do {
-    //   status = solver.minimizeOneStep(x);
-    //   spdlog::info("iter: {} | TargetVal: {:03.2f}", solver.iter,
-    //                solver.fvec.sum());
-    // } while (status == Eigen::LevenbergMarquardtSpace::Running);
-
     BFGS<decltype(functor)> solver(functor);
     solver.solve(x);
-    for (int i = 0; i < mesh.num_verts(); ++i) {
-      mesh.vert(i)[0] = x[3 * i];
-      mesh.vert(i)[1] = x[3 * i + 1];
-      mesh.vert(i)[2] = x[3 * i + 2];
-    }
   }
 };
 

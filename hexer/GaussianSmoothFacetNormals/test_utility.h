@@ -92,3 +92,21 @@ SphereGen(int n, const std::vector<Expblas::vec3d> &vertex,
                         _faces.data()->dataptr() + _faces.size() * 3));
   return mesh;
 }
+
+template <typename Mesh> class NewCanvans : public cinolib::GLcanvas {
+  int count = 0;
+
+public:
+  void draw() override {
+    if (count % 100 == 0) {
+      for (auto obj : drawlist)
+        const_cast<cinolib::AbstractDrawablePolyhedralMesh<Mesh> *>(
+            dynamic_cast<const cinolib::AbstractDrawablePolyhedralMesh<Mesh> *>(
+                obj))
+            ->updateGL();
+      count = 0;
+    }
+    static_cast<cinolib::GLcanvas *>(this)->draw();
+    count++;
+  }
+};

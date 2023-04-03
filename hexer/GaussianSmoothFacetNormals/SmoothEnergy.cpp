@@ -7,6 +7,7 @@
 
 #include "test_utility.h"
 #include <core/hexer_core.h>
+#include <core/old_deformation.h>
 
 auto build_test_cube() {
   cinolib::DrawablePolygonmesh<> mesh;
@@ -150,11 +151,8 @@ int testGSN() {
 }
 
 int testPolyCubeOptimization() {
-  std::cout << "rua0" << std::endl;
   auto mesh = TetGenSphere();
-  std::cout << "rua" << std::endl;
   hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
-  std::cout << "rua2" << std::endl;
 
   Hexer::DeformEnergyOptions d_options;
   Hexer::FacetNormalDeformOption f_options;
@@ -181,12 +179,50 @@ void test_adj_v2p() {
   }
   std::cout << count << std::endl;
   std::cout << count_min << std::endl;
-  std::cout<<mesh.vert(0)<<std::endl;
+  std::cout << mesh.vert(0) << std::endl;
+}
+
+void debugDeformation() {
+  auto mesh = TetGenSphere();
+  hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
+
+  Hexer::DeformEnergyOptions d_options;
+  Hexer::FacetNormalDeformOption f_options;
+  Hexer::Debug::DeformEnergyOptions d_options_d;
+  Hexer::Debug::FacetNormalDeformOption f_options_d;
+  auto new_op = [&](double &f) {
+    auto deform_op = Hexer::DeformEnergy()(mesh, d_options);
+    auto facet_op = Hexer::FacetNormalsEnergy()(mesh, f_options);
+    auto functor = Hexer::MeshDeformFunctor(mesh, deform_op, facet_op);
+    Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
+        mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
+
+    Hexer::PolyhedralSurfMarker()(mesh).execute();
+    deform_op.execute(x);
+    facet_op.execute(x);
+
+    Eigen::Vector<double, 1> fvec;
+    functor.f_evalOne(x, fvec, 0);
+    f = fvec[0];
+  };
+  auto old_op = Hexer::Debug::PolyCubeGen()(mesh, d_options_d, f_options_d);
+
+  double new_1 = 0.0, new_2 = 0.0;
+
+  old_op.execute();
+  new_op(new_1);
+
+  mesh.vert(0)[1] = 2;
+
+  old_op.execute();
+  new_op(new_2);
+  std::cout << new_2 - new_1 << std::endl;
 }
 
 int main() {
   testPolyCubeOptimization();
-  //test_adj_v2p();
-  //TestLoopSubdivision();
+  // test_adj_v2p();
+  // TestLoopSubdivision();
+  // debugDeformation();
   return 1;
 }
