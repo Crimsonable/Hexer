@@ -50,11 +50,16 @@ auto TetGenSphere() {
   projectUnitSphere(sphere_surface);
   cinolib::DrawablePolygonmesh<> surface_mesh(sphere_surface.vector_verts(),
                                               sphere_surface.vector_polys());
-  std::vector<cinolib::vec3d> v_out;
-  std::vector<uint> e_in, p_out;
-  cinolib::tetgen_wrap(surface_mesh.vector_verts(), surface_mesh.vector_polys(),
-                       e_in, "", v_out, p_out);
-  cinolib::DrawableTetmesh<> tet_mesh(v_out, p_out);
+  std::vector<double> verts;
+  std::vector<uint> edges, tets;
+  double vol_thresh = 0.01 * sphere_surface.bbox().diag();
+  char opt[100];
+  sprintf(opt, "YQqa%f", vol_thresh);
+  cinolib::tetgen_wrap(
+      cinolib::serialized_xyz_from_vec3d(sphere_surface.vector_verts()),
+      cinolib::serialized_vids_from_polys(sphere_surface.vector_polys()), edges,
+      opt, verts, tets);
+  cinolib::DrawableTetmesh<> tet_mesh(verts, tets);
 
   return tet_mesh;
 }
@@ -182,47 +187,31 @@ void test_adj_v2p() {
   std::cout << mesh.vert(0) << std::endl;
 }
 
-void debugDeformation() {
+auto debugDeformation() {
   auto mesh = TetGenSphere();
-  hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
+  for (int vid = 0; vid < mesh.num_verts(); ++vid) {
+    int count = 0;
+    for (int pid = 0; pid < mesh.num_polys(); ++pid) {
+      if (mesh.poly_contains_vert(pid, vid))
+        count++;
+    }
+    std::cout << count << std::endl;
+  }
+  mesh.show_out_wireframe(true);
+  mesh.show_in_wireframe(true);
+  mesh.save("rua.vtu");
 
-  Hexer::DeformEnergyOptions d_options;
-  Hexer::FacetNormalDeformOption f_options;
-  Hexer::Debug::DeformEnergyOptions d_options_d;
-  Hexer::Debug::FacetNormalDeformOption f_options_d;
-  auto new_op = [&](double &f) {
-    auto deform_op = Hexer::DeformEnergy()(mesh, d_options);
-    auto facet_op = Hexer::FacetNormalsEnergy()(mesh, f_options);
-    auto functor = Hexer::MeshDeformFunctor(mesh, deform_op, facet_op);
-    Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
-        mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
-
-    Hexer::PolyhedralSurfMarker()(mesh).execute();
-    deform_op.execute(x);
-    facet_op.execute(x);
-
-    Eigen::Vector<double, 1> fvec;
-    functor.f_evalOne(x, fvec, 0);
-    f = fvec[0];
-  };
-  auto old_op = Hexer::Debug::PolyCubeGen()(mesh, d_options_d, f_options_d);
-
-  double new_1 = 0.0, new_2 = 0.0;
-
-  old_op.execute();
-  new_op(new_1);
-
-  mesh.vert(0)[1] = 2;
-
-  old_op.execute();
-  new_op(new_2);
-  std::cout << new_2 - new_1 << std::endl;
+  mesh.updateGL();
+  cinolib::GLcanvas gui;
+  gui.push(&mesh);
+  return gui.launch();
 }
 
 int main() {
   testPolyCubeOptimization();
-  // test_adj_v2p();
-  // TestLoopSubdivision();
+  //   test_adj_v2p();
+  //   TestLoopSubdivision();
+  //   debugDeformation();
   // debugDeformation();
   return 1;
 }

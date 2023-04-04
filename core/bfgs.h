@@ -40,7 +40,7 @@ int NumericalDiff(Func &&f, const Eigen::VectorXd &_x, Eigen::VectorXd &jac,
   }
 
   // Function Body
-  // #pragma omp parallel for firstprivate(x, val1, val2, h)
+  #pragma omp parallel for firstprivate(x, val1, val2, h)
   for (int j = 0; j < n; ++j) {
     h = eps * abs(x[j]);
     if (h == 0.) {
@@ -50,7 +50,7 @@ int NumericalDiff(Func &&f, const Eigen::VectorXd &_x, Eigen::VectorXd &jac,
       x[j] += h;
       f(x, val2);
       x[j] = _x[j];
-      jac.row(j) = (val2 - val1) / h;
+      jac.row(j) = (val2 - val1) / (2 * h);
     } else {
       x[j] += h;
       f(x, val2);

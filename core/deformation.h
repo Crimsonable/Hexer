@@ -270,7 +270,7 @@ public:
        FacetNormalDeformOption options, const Eigen::VectorXd &x, int pid) {
     double n_gsn = 0.0;
     for (auto f : mesh.poly_faces_id(pid))
-      if (mesh.face_data(f).flags[0]) {
+      if (mesh.face_data(f).flags[cinolib::UNUSED_0]) {
         auto &vid = mesh.adj_f2v(f);
         auto v0 = x.block<3, 1>(vid[0] * 3, 0);
         auto v1 = x.block<3, 1>(vid[1] * 3, 0);
@@ -346,8 +346,8 @@ public:
     double conformal = 0.125 * (A_expr.squaredNorm() * A_inv.squaredNorm() - 1);
     double A_det = A_expr.determinant();
     double volumetric = 0.5 * (A_det + 1.0 / A_det);
-    return std::exp(options.s *
-                    (options.alpha * conformal + options.alpha * volumetric));
+    return std::exp(options.s * (options.alpha * conformal +
+                                 (1 - options.alpha) * volumetric));
   }
 
   template <typename M, typename V, typename E, typename F, typename P>
@@ -383,12 +383,12 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
 
   HEXER_INLINE double evalOnePoly(const Eigen::VectorXd &x, int pid) {
     double normal_e = 0.0, deform_e = 0.0;
-    if (_mesh.poly_data(pid).flags[0])
+    if (_mesh.poly_data(pid).flags[cinolib::UNUSED_0])
       normal_e = _facetE.execute(x, pid);
     deform_e = _deformE.execute(x, pid);
     // return deform_e +
     //        std::min(std::max(normal_e / deform_e, 1e3), 1e16) * normal_e;
-    return normal_e + deform_e;
+    return 0.001 * deform_e + normal_e;
   }
 
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec) {
@@ -409,7 +409,7 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
   }
 
   int df(const Eigen::VectorXd &x, Eigen::VectorXd &jac) {
-    return NumericalDiff<DiffMode::Central>(*this, x, jac);
+    return NumericalDiff<DiffMode::Forward>(*this, x, jac);
   }
 
   Mesh &_mesh;

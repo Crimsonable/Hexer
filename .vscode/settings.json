@@ -127,7 +127,8 @@
         "sparsecore": "cpp",
         "execution": "cpp",
         "jacobi": "cpp",
-        "__locale": "cpp"
+        "__locale": "cpp",
+        "*.rh": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "cmake.configureSettings": {

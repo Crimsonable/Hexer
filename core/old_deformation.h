@@ -2,6 +2,7 @@
 #include "bfgs.h"
 #include "expr.h"
 #include "mesh.h"
+#include "deformation.h"
 
 #include <cinolib/meshes/meshes.h>
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
@@ -10,10 +11,6 @@
 
 namespace Hexer {
 namespace Debug {
-
-struct FacetNormalDeformOption {
-  double sigma = 0.01;
-};
 
 template <typename M, typename V, typename E, typename P>
 inline auto poly_centroid(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
@@ -160,11 +157,6 @@ public:
   }
 };
 
-struct DeformEnergyOptions {
-  double alpha = 0.5;
-  double s = 1.0;
-};
-
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class DeformEnergy
     : public CrtpExprBase<device, DeformEnergy<device, ParamTuple>,
@@ -256,27 +248,11 @@ public:
     auto deform_op = DeformEnergy()(mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(mesh, f_options);
     auto functor = MeshDeformFunctor(mesh.num_verts() * 3, deform_op, facet_op);
-    Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
-        mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
+    auto x = Eigen::Map<Eigen::VectorXd>(mesh.vector_verts().data()->ptr(),
+                                         mesh.num_verts() * 3);
 
-    // Eigen::LevenbergMarquardt<decltype(functor)> solver(functor);
-    // auto status = solver.minimizeInit(x);
-    // do {
-    //   status = solver.minimizeOneStep(x);
-    //   spdlog::info("iter: {} | TargetVal: {:03.2f}", solver.iter,
-    //                solver.fvec.sum());
-    // } while (status == Eigen::LevenbergMarquardtSpace::Running);
-
-    // BFGS<decltype(functor)> solver(functor);
-    // solver.solve(x);
-    // for (int i = 0; i < mesh.num_verts(); ++i) {
-    //   mesh.vert(i)[0] = x[3 * i];
-    //   mesh.vert(i)[1] = x[3 * i + 1];
-    //   mesh.vert(i)[2] = x[3 * i + 2];
-    // }
-    Eigen::Vector<double, 1> fvec;
-    functor(x, fvec);
-    std::cout << "old_value: " << fvec << std::endl;
+    BFGS<decltype(functor)> solver(functor);
+    solver.solve(x);
   }
 };
 } // namespace Debug
