@@ -19,5 +19,6 @@ target_sources(
         hexer_core.h
         cycle.h
         old_deformation.h
+        cinolib_enhance.h
 )
 target_include_directories(HexerCore PUBLIC ${CMAKE_CURRENT_LIST_DIR})

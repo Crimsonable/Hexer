@@ -1,5 +1,6 @@
 #pragma once
 #include "bfgs.h"
+#include "cinolib_enhance.h"
 #include "expr.h"
 #include "mesh.h"
 
@@ -371,6 +372,64 @@ public:
       energy += this->eval(mesh, options, x, pid);
 
     return energy;
+  }
+};
+
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class AffineOp
+    : public CrtpExprBase<device, AffineOp<device, ParamTuple>, ParamTuple> {
+  Eigen::Matrix3Xd _A0;
+
+  template <typename Mat>
+  HEXER_INLINE auto poly_affine(const Eigen::VectorXd &x, int pid,
+                                const std::vector<uint> &adj_p2v,
+                                Eigen::MatrixBase<Mat> &mat) {
+    for (int i = 0; i < adj_p2v.size() - 1; ++i)
+      if constexpr (mat.RowsAtCompileTime == 3 && mat.ColsAtCompileTime == 3)
+        mat.col(i) = x.block<3, 1>(3 * adj_p2v[0], 0) -
+                     x.block<3, 1>(3 * adj_p2v[i + 1], 0);
+      else
+        mat.block<3, 3>(0, 3 * pid).col(i) =
+            x.block<3, 1>(3 * adj_p2v[0], 0) -
+            x.block<3, 1>(3 * adj_p2v[i + 1], 0);
+  }
+
+  template <typename VEC>
+  HEXER_INLINE auto poly_affine(const VEC &x, int v0, int v1, int v2, int v3) {
+    Eigen::Matrix3d A;
+    A.col(0) = x.block<3, 1>(3 * v0, 0) - x.block<3, 1>(3 * v1, 0);
+    A.col(1) = x.block<3, 1>(3 * v0, 0) - x.block<3, 1>(3 * v2, 0);
+    A.col(2) = x.block<3, 1>(3 * v0, 0) - x.block<3, 1>(3 * v3, 0);
+    return A;
+  }
+
+public:
+  template <typename... Args>
+  AffineOp(Args &&...args)
+      : CrtpExprBase<device, AffineOp<device, ParamTuple>, ParamTuple>(
+            std::forward<decltype(args)>(args)...) {}
+
+  template <typename M, typename V, typename E, typename F, typename P>
+  auto &eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+             int _pid, int _vid) {
+    if (_A0.size() == 0) {
+      _A0.resize(3, mesh.num_polys() * 12);
+      auto x = Eigen::Map<Eigen::VectorXd>(
+          const_cast<cinolib::AbstractPolyhedralMesh<M, V, E, F, P> *>(&mesh)
+              ->vector_verts()
+              .data()
+              ->ptr(),
+          mesh.num_verts() * 3);
+      for (int pid = 0; pid < mesh.num_polys(); ++pid) {
+        for (auto &&[off, vid] : mesh.adj_p2v(pid) | ranges::views::enumerate)
+          _A0.block<3, 3>(0, pid * 12 + off * 3) =
+              poly_affine(x, vid, mesh.adj_p2v(pid)[(off + 1) % 4],
+                          mesh.adj_p2v(pid)[(off + 2) % 4],
+                          mesh.adj_p2v(pid)[(off + 3) % 4]);
+      }
+    }
+    return _A0.block<3, 3>(0, _pid * 12 +
+                                  vert_offset_within_tet(mesh, _pid, _vid) * 3);
   }
 };
 
