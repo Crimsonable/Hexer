@@ -310,90 +310,12 @@ struct DeformEnergyOptions {
 };
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
-class DeformEnergy
-    : public CrtpExprBase<device, DeformEnergy<device, ParamTuple>,
-                          ParamTuple> {
-
-  Eigen::Matrix3Xd A_0;
-
-public:
-  template <typename... Args>
-  DeformEnergy(Args &&...args)
-      : CrtpExprBase<device, DeformEnergy<device, ParamTuple>, ParamTuple>(
-            std::forward<decltype(args)>(args)...) {}
-
-  // poly's deformation affine matrix is [vp-vq | vp-vr | vp-vs]
-  template <typename Mat>
-  HEXER_INLINE auto poly_affine(const Eigen::VectorXd &x, int pid,
-                                const std::vector<uint> &adj_p2v,
-                                Eigen::MatrixBase<Mat> &mat) {
-    for (int i = 0; i < adj_p2v.size() - 1; ++i)
-      if constexpr (mat.RowsAtCompileTime == 3 && mat.ColsAtCompileTime == 3)
-        mat.col(i) = x.block<3, 1>(3 * adj_p2v[0], 0) -
-                     x.block<3, 1>(3 * adj_p2v[i + 1], 0);
-      else
-        mat.block<3, 3>(0, 3 * pid).col(i) =
-            x.block<3, 1>(3 * adj_p2v[0], 0) -
-            x.block<3, 1>(3 * adj_p2v[i + 1], 0);
-  }
-  template <typename M, typename V, typename E, typename F, typename P>
-  HEXER_INLINE auto
-  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       DeformEnergyOptions options, const Eigen::VectorXd &x, int pid) {
-    Eigen::Matrix3d A_1;
-    poly_affine(x, pid, mesh.adj_p2v(pid), A_1);
-    auto A_expr = A_1 * A_0.block<3, 3>(0, pid * 3);
-    auto A_inv = A_expr.inverse();
-    double conformal = 0.125 * (A_expr.squaredNorm() * A_inv.squaredNorm() - 1);
-    double A_det = A_expr.determinant();
-    double volumetric = 0.5 * (A_det + 1.0 / A_det);
-    return std::exp(options.s * (options.alpha * conformal +
-                                 (1 - options.alpha) * volumetric));
-  }
-
-  template <typename M, typename V, typename E, typename F, typename P>
-  auto eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-            DeformEnergyOptions options, const Eigen::VectorXd &x) {
-
-    // A_0 is constant during the calculation, if A_0's size equals to 0, then
-    // calculate A_0 once.
-    if (A_0.size() == 0) {
-      A_0.resize(3, mesh.num_polys() * 3);
-
-      for (int pid = 0; pid < mesh.num_polys(); ++pid) {
-        poly_affine(x, pid, mesh.adj_p2v(pid), A_0);
-        A_0.block<3, 3>(0, 3 * pid) =
-            A_0.block<3, 3>(0, 3 * pid).inverse().eval();
-      }
-    }
-
-    double energy = 0;
-    for (int pid = 0; pid < mesh.num_polys(); ++pid)
-      energy += this->eval(mesh, options, x, pid);
-
-    return energy;
-  }
-};
-
-template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class AffineOp
     : public CrtpExprBase<device, AffineOp<device, ParamTuple>, ParamTuple> {
   Eigen::Matrix3Xd _A0;
 
-  template <typename Mat>
-  HEXER_INLINE auto poly_affine(const Eigen::VectorXd &x, int pid,
-                                const std::vector<uint> &adj_p2v,
-                                Eigen::MatrixBase<Mat> &mat) {
-    for (int i = 0; i < adj_p2v.size() - 1; ++i)
-      if constexpr (mat.RowsAtCompileTime == 3 && mat.ColsAtCompileTime == 3)
-        mat.col(i) = x.block<3, 1>(3 * adj_p2v[0], 0) -
-                     x.block<3, 1>(3 * adj_p2v[i + 1], 0);
-      else
-        mat.block<3, 3>(0, 3 * pid).col(i) =
-            x.block<3, 1>(3 * adj_p2v[0], 0) -
-            x.block<3, 1>(3 * adj_p2v[i + 1], 0);
-  }
-
+public:
+  // poly's deformation affine matrix is [vp-vq | vp-vr | vp-vs]
   template <typename VEC>
   HEXER_INLINE auto poly_affine(const VEC &x, int v0, int v1, int v2, int v3) {
     Eigen::Matrix3d A;
@@ -403,7 +325,6 @@ class AffineOp
     return A;
   }
 
-public:
   template <typename... Args>
   AffineOp(Args &&...args)
       : CrtpExprBase<device, AffineOp<device, ParamTuple>, ParamTuple>(
@@ -430,6 +351,51 @@ public:
     }
     return _A0.block<3, 3>(0, _pid * 12 +
                                   vert_offset_within_tet(mesh, _pid, _vid) * 3);
+  }
+};
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class DeformEnergy
+    : public CrtpExprBase<device, DeformEnergy<device, ParamTuple>,
+                          ParamTuple> {
+
+public:
+  template <typename... Args>
+  DeformEnergy(Args &&...args)
+      : CrtpExprBase<device, DeformEnergy<device, ParamTuple>, ParamTuple>(
+            std::forward<decltype(args)>(args)...) {}
+
+  template <typename M, typename V, typename E, typename F, typename P,
+            typename Aff>
+  HEXER_INLINE auto
+  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+       DeformEnergyOptions options, const Eigen::VectorXd &x, int vid,
+       Aff &affine_op) {
+    double energy = 0.0;
+    for (auto pid : mesh.adj_v2p(vid)) {
+      int offset = vert_offset_within_tet(mesh, pid, vid);
+      auto A_0 = affine_op.execute(pid, vid);
+      auto A_1 = affine_op.poly_affine(x, vid, mesh.adj_p2v(pid)[(off + 1) % 4],
+                                       mesh.adj_p2v(pid)[(off + 2) % 4],
+                                       mesh.adj_p2v(pid)[(off + 3) % 4]);
+      auto A_expr = A_1 * A_0;
+      auto A_inv = A_expr.inverse();
+      double conformal =
+          0.125 * (A_expr.squaredNorm() * A_inv.squaredNorm() - 1);
+      double A_det = A_expr.determinant();
+      double volumetric = 0.5 * (A_det + 1.0 / A_det);
+      energy += std::exp(options.s * (options.alpha * conformal +
+                                      (1 - options.alpha) * volumetric));
+    }
+    return energy;
+  }
+
+  template <typename M, typename V, typename E, typename F, typename P,
+            typename Aff>
+  HEXER_INLINE auto
+  df(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+     DeformEnergyOptions options, const Eigen::VectorXd &x, int vid,
+     Aff &affine_op) {
+    Eigen::Vector3d d_energy;
   }
 };
 
