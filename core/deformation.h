@@ -268,20 +268,30 @@ public:
   template <typename M, typename V, typename E, typename F, typename P>
   HEXER_INLINE auto
   eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       FacetNormalDeformOption options, const Eigen::VectorXd &x, int pid) {
+       FacetNormalDeformOption options, const Eigen::VectorXd &x, int vid,
+       bool gradient) {
     double n_gsn = 0.0;
-    for (auto f : mesh.poly_faces_id(pid))
-      if (mesh.face_data(f).flags[cinolib::UNUSED_0]) {
+    Eigen::Vector3d d_gsn(0, 0, 0);
+    for (auto fid : mesh.adj_v2f(vid)) {
+      if (mesh.face_data(fid).flags[cinolib::UNUSED_0]) {
         auto &vid = mesh.adj_f2v(f);
-        auto v0 = x.block<3, 1>(vid[0] * 3, 0);
-        auto v1 = x.block<3, 1>(vid[1] * 3, 0);
-        auto v2 = x.block<3, 1>(vid[2] * 3, 0);
+        auto offset = vert_offset_within_tri(mesh, fid, vid);
+        auto v0 = x.block<3, 1>(vid[offset] * 3, 0);
+        auto v1 = x.block<3, 1>(vid[(offset + 1) % 3] * 3, 0);
+        auto v2 = x.block<3, 1>(vid[(offset + 2) % 3] * 3, 0);
 
         n_gsn +=
-            ((v1 - v0).cross(v2 - v0).normalized() - _gsn.col(_face_map[f]))
+            ((v1 - v0).cross(v2 - v0).normalized() - _gsn.col(_face_map[fid]))
                 .squaredNorm();
+
+        if (gradient) {
+          d_gsn += Eigen::Vector3d(-1, -1, -1).cross(v2 - v0) +
+                   (v1 - v0).cross(Eigen::Vector3d(-1, -1, -1));
+        }
       }
-    return n_gsn;
+    }
+
+    return std::make_pair(n_gsn, d_gsn);
   }
 
   template <typename M, typename V, typename E, typename F, typename P>
@@ -295,12 +305,6 @@ public:
       for (const auto &[i, f] : index_raw | ranges::views::enumerate)
         _face_map[f] = i;
     }
-
-    double n_gsn = 0;
-    for (int pid = 0; pid < mesh.num_polys(); ++pid)
-      n_gsn += this->eval(mesh, options, x, pid);
-
-    return n_gsn;
   }
 };
 
@@ -355,9 +359,10 @@ public:
   template <typename M, typename V, typename E, typename F, typename P>
   HEXER_INLINE auto
   eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       DeformEnergyOptions options, const Eigen::VectorXd &x, int vid) {
+       DeformEnergyOptions options, const Eigen::VectorXd &x, int vid,
+       bool gradient) {
     double energy = 0.0;
-    Eigen::Vector3d d_energy = 0.0;
+    Eigen::Vector3d d_energy(0, 0, 0);
 
     for (auto pid : mesh.adj_v2p(vid)) {
       int offset = vert_offset_within_tet(mesh, pid, vid);
@@ -378,16 +383,19 @@ public:
 
       auto g_prefix = 2 * (F2_A_inv * A_expr - F2_A * A_inv.transpose() *
                                                    A_inv * A_inv.transpose());
-      Eigen::Matrix3d d_A;
-      d_A.row(0) =
-          Eigen::Vector3d(A_0.col(0).sum(), A_0.col(1).sum(), A_0.col(2).sum())
-              .transpose();
-      d_A.row(1) = d_A.row(0);
-      d_A.row(2) = d_A.row(2);
 
-      d_energy += d_A.cwiseProduct(g_prefix).rowwise().sum();
+      if (gradient) {
+        Eigen::Matrix3d d_A;
+        d_A.row(0) = Eigen::Vector3d(A_0.col(0).sum(), A_0.col(1).sum(),
+                                     A_0.col(2).sum())
+                         .transpose();
+        d_A.row(1) = d_A.row(0);
+        d_A.row(2) = d_A.row(2);
+
+        d_energy += d_A.cwiseProduct(g_prefix).rowwise().sum();
+      }
     }
-    return energy;
+    return std::make_pair(energy, d_energy);
   }
 };
 
