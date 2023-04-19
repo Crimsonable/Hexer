@@ -282,15 +282,17 @@ public:
 
         Eigen::Vector3d cross_v = (v1 - v0).cross(v2 - v0);
         double cross_v_norm2 = 1.0 / cross_v.norm();
-        n_gsn +=
-            (cross_v * cross_v_norm2 - _gsn.col(_face_map[fid])).squaredNorm();
+        Eigen::Vector3d cal_gsn =
+            cross_v * cross_v_norm2 - _gsn.col(_face_map[fid]);
+        n_gsn += cal_gsn.squaredNorm();
 
         if (gradient) {
-          d_gsn +=
-              cross_v_norm2 *
-              cross_v.cwiseProduct(Eigen::Vector3d(-1, -1, -1))
-                  .cwiseProduct((Eigen::Vector3d(-1, -1, -1).cross(v2 - v0) +
-                                 (v1 - v0).cross(Eigen::Vector3d(-1, -1, -1))));
+          d_gsn += 2 * cross_v_norm2 *
+                   cal_gsn.cwiseProduct(
+                       cross_v.cwiseProduct(Eigen::Vector3d(-1, -1, -1))
+                           .cwiseProduct(
+                               (Eigen::Vector3d(-1, -1, -1).cross(v2 - v0) +
+                                (v1 - v0).cross(Eigen::Vector3d(-1, -1, -1)))));
         }
       }
     }
@@ -419,9 +421,9 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
 
   HEXER_INLINE auto evalOneVertex(const Eigen::VectorXd &x, int vid,
                                   bool gradient) {
-    auto [normal_e, d_normal_e] = _deformE.execute(x, vid, gradient);
+    // auto [normal_e, d_normal_e] = _deformE.execute(x, vid, gradient);
     auto [facet_e, d_facet_e] = _facetE.execute(x, vid, gradient);
-    return std::make_pair(normal_e + facet_e, (d_normal_e + d_facet_e).eval());
+    return std::make_pair(facet_e, (d_facet_e).eval());
   }
 
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec,
