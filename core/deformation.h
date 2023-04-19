@@ -274,19 +274,23 @@ public:
     Eigen::Vector3d d_gsn(0, 0, 0);
     for (auto fid : mesh.adj_v2f(vid)) {
       if (mesh.face_data(fid).flags[cinolib::UNUSED_0]) {
-        auto &vid = mesh.adj_f2v(f);
+        auto &adj_vid = mesh.adj_f2v(fid);
         auto offset = vert_offset_within_tri(mesh, fid, vid);
-        auto v0 = x.block<3, 1>(vid[offset] * 3, 0);
-        auto v1 = x.block<3, 1>(vid[(offset + 1) % 3] * 3, 0);
-        auto v2 = x.block<3, 1>(vid[(offset + 2) % 3] * 3, 0);
+        auto v0 = x.block<3, 1>(adj_vid[offset] * 3, 0);
+        auto v1 = x.block<3, 1>(adj_vid[(offset + 1) % 3] * 3, 0);
+        auto v2 = x.block<3, 1>(adj_vid[(offset + 2) % 3] * 3, 0);
 
+        Eigen::Vector3d cross_v = (v1 - v0).cross(v2 - v0);
+        double cross_v_norm2 = 1.0 / cross_v.norm();
         n_gsn +=
-            ((v1 - v0).cross(v2 - v0).normalized() - _gsn.col(_face_map[fid]))
-                .squaredNorm();
+            (cross_v * cross_v_norm2 - _gsn.col(_face_map[fid])).squaredNorm();
 
         if (gradient) {
-          d_gsn += Eigen::Vector3d(-1, -1, -1).cross(v2 - v0) +
-                   (v1 - v0).cross(Eigen::Vector3d(-1, -1, -1));
+          d_gsn +=
+              cross_v_norm2 *
+              cross_v.cwiseProduct(Eigen::Vector3d(-1, -1, -1))
+                  .cwiseProduct((Eigen::Vector3d(-1, -1, -1).cross(v2 - v0) +
+                                 (v1 - v0).cross(Eigen::Vector3d(-1, -1, -1))));
         }
       }
     }
@@ -336,7 +340,8 @@ public:
 
   template <typename M, typename V, typename E, typename F, typename P>
   HEXER_INLINE auto
-  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh) {
+  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+       DeformEnergyOptions options, const Eigen::VectorXd &x) {
     if (_A0.size() == 0) {
       _A0.resize(3, mesh.num_polys() * 12);
       auto x = Eigen::Map<Eigen::VectorXd>(
@@ -365,13 +370,13 @@ public:
     Eigen::Vector3d d_energy(0, 0, 0);
 
     for (auto pid : mesh.adj_v2p(vid)) {
-      int offset = vert_offset_within_tet(mesh, pid, vid);
-      auto A_0 = _A0.block<3, 3>(0, pid * 12 + offset * 3);
-      auto A_1 = affine_op.poly_affine(x, vid, mesh.adj_p2v(pid)[(off + 1) % 4],
-                                       mesh.adj_p2v(pid)[(off + 2) % 4],
-                                       mesh.adj_p2v(pid)[(off + 3) % 4]);
+      int off = vert_offset_within_tet(mesh, pid, vid);
+      auto A_0 = _A0.block<3, 3>(0, pid * 12 + off * 3);
+      auto A_1 = poly_affine(x, vid, mesh.adj_p2v(pid)[(off + 1) % 4],
+                             mesh.adj_p2v(pid)[(off + 2) % 4],
+                             mesh.adj_p2v(pid)[(off + 3) % 4]);
       auto A_expr = A_1 * A_0;
-      auto A_inv = A_expr.inverse();
+      Eigen::Matrix3d A_inv = A_expr.inverse();
       double F2_A = A_expr.squaredNorm();
       double F2_A_inv = A_inv.squaredNorm();
 
@@ -381,18 +386,24 @@ public:
       energy += std::exp(options.s * (options.alpha * conformal +
                                       (1 - options.alpha) * volumetric));
 
-      auto g_prefix = 2 * (F2_A_inv * A_expr - F2_A * A_inv.transpose() *
-                                                   A_inv * A_inv.transpose());
-
       if (gradient) {
+        auto g_prefix =
+            0.25 * (F2_A_inv * A_expr -
+                    F2_A * A_inv.transpose() * A_inv * A_inv.transpose());
         Eigen::Matrix3d d_A;
         d_A.row(0) = Eigen::Vector3d(A_0.col(0).sum(), A_0.col(1).sum(),
                                      A_0.col(2).sum())
                          .transpose();
         d_A.row(1) = d_A.row(0);
-        d_A.row(2) = d_A.row(2);
+        d_A.row(2) = d_A.row(1);
 
-        d_energy += d_A.cwiseProduct(g_prefix).rowwise().sum();
+        // std::cout << "A_inv:\n" << A_inv << std::endl;
+        // std::cout << "d_A:\n" << d_A << std::endl;
+        // std::cout<<"prefix:\n"<<g_prefix<<std::endl;
+
+        d_energy +=
+            d_A.cwiseProduct(g_prefix).rowwise().sum() +
+            0.5 * (A_det * A_inv.transpose()).cwiseProduct(d_A).rowwise().sum();
       }
     }
     return std::make_pair(energy, d_energy);
@@ -406,35 +417,23 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
         Functor<double, Eigen::Dynamic, 1>(mesh.num_verts() * 3, 1),
         _deformE(deformE), _facetE(facetE) {}
 
-  HEXER_INLINE double evalOnePoly(const Eigen::VectorXd &x, int pid) {
-    double normal_e = 0.0, deform_e = 0.0;
-    if (_mesh.poly_data(pid).flags[cinolib::UNUSED_0])
-      normal_e = _facetE.execute(x, pid);
-    deform_e = _deformE.execute(x, pid);
-    // return deform_e +
-    //        std::min(std::max(normal_e / deform_e, 1e3), 1e16) * normal_e;
-    return 0.001 * deform_e + normal_e;
+  HEXER_INLINE auto evalOneVertex(const Eigen::VectorXd &x, int vid,
+                                  bool gradient) {
+    auto [normal_e, d_normal_e] = _deformE.execute(x, vid, gradient);
+    auto [facet_e, d_facet_e] = _facetE.execute(x, vid, gradient);
+    return std::make_pair(normal_e + facet_e, (d_normal_e + d_facet_e).eval());
   }
 
-  int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec) {
+  int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec,
+                 Eigen::VectorXd &fjac, bool gradient) {
     fvec[0] = 0;
-    for (int pid = 0; pid < _mesh.num_polys(); ++pid)
-      fvec[0] += evalOnePoly(x, pid);
-
+    for (int vid = 0; vid < _mesh.num_verts(); ++vid) {
+      auto [fval, d_fval] = evalOneVertex(x, vid, gradient);
+      fvec[0] += fval;
+      if (gradient)
+        fjac.block<3, 1>(vid * 3, 0) = d_fval;
+    }
     return 0;
-  }
-
-  int f_evalOne(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec,
-                int vid) {
-    fvec[0] = 0;
-    for (auto &pid : _mesh.adj_v2p(vid))
-      fvec[0] += evalOnePoly(x, pid);
-
-    return 0;
-  }
-
-  int df(const Eigen::VectorXd &x, Eigen::VectorXd &jac) {
-    return NumericalDiff<DiffMode::Forward>(*this, x, jac);
   }
 
   Mesh &_mesh;
@@ -452,8 +451,8 @@ public:
     auto deform_op = DeformEnergy()(mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(mesh, f_options);
     auto functor = MeshDeformFunctor(mesh, deform_op, facet_op);
-    auto x = Eigen::Map<Eigen::VectorXd>(mesh.vector_verts().data()->ptr(),
-                                         mesh.num_verts() * 3);
+    Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
+        mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
 
     PolyhedralSurfMarker()(mesh).execute();
     deform_op.execute(x);
@@ -461,6 +460,8 @@ public:
 
     BFGS<decltype(functor)> solver(functor);
     solver.solve(x);
+
+    VertexUpdate().execute(mesh, x);
   }
 };
 
