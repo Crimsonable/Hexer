@@ -53,4 +53,19 @@ public:
   }
 };
 
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class VertexUpdate
+    : public CrtpExprBase<device, VertexUpdate<device, ParamTuple>,
+                          ParamTuple> {
+public:
+  template <typename M, typename V, typename E, typename P>
+  auto eval(cinolib::AbstractMesh<M, V, E, P> &mesh, const Eigen::VectorXd &x) {
+    for (int vid = 0; vid < mesh.num_verts(); ++vid) {
+      mesh.vert(vid)[0] = x[vid * 3];
+      mesh.vert(vid)[1] = x[vid * 3 + 1];
+      mesh.vert(vid)[2] = x[vid * 3 + 2];
+    }
+  }
+};
+
 } // namespace Hexer

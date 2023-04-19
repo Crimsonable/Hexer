@@ -73,8 +73,9 @@ void TestEnergy() {
   options.sigma = 1;
   Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
       mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
-  auto facet = Hexer::FacetNormalsEnergy()(mesh, options).execute(x) +
-               Hexer::DeformEnergy()(mesh, options2).execute(x);
+  auto facet =
+      Hexer::FacetNormalsEnergy()(mesh, options).execute(x, 0, false).first +
+      Hexer::DeformEnergy()(mesh, options2).execute(x, 0, false).first;
   std::cout << facet << std::endl;
 }
 

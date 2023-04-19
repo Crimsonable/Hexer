@@ -74,7 +74,8 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
   ~GlobalOrientationAlignFunctor() { _pool.shutdown(); }
 
   // target function: f(n)=nx*ny+nx*nz+ny*nz
-  int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec) {
+  int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec,
+                 Eigen::VectorXd &fjac, bool gradient) {
     Eigen::Matrix3d rotation = EulerToRotationMatrix(x);
     Eigen::Matrix3Xd Rn = Eigen::Map<Eigen::Matrix3Xd>(_normals.data()->ptr(),
                                                        3, _normals.size());
@@ -83,6 +84,9 @@ struct GlobalOrientationAlignFunctor : public Functor<double> {
     _Rn = _Rn.cwiseProduct(_Rn);
     _ERn = _trans * _Rn;
     fvec[0] = _Rn.cwiseProduct(_ERn).sum();
+
+    if (gradient)
+      df(x, fjac);
 
     return 0;
   }
