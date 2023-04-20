@@ -287,12 +287,12 @@ public:
         n_gsn += cal_gsn.squaredNorm();
 
         if (gradient) {
-          d_gsn += 2 * cross_v_norm2 *
-                   cal_gsn.cwiseProduct(
-                       cross_v.cwiseProduct(Eigen::Vector3d(-1, -1, -1))
-                           .cwiseProduct(
-                               (Eigen::Vector3d(-1, -1, -1).cross(v2 - v0) +
-                                (v1 - v0).cross(Eigen::Vector3d(-1, -1, -1)))));
+          d_gsn +=
+              2 * cross_v.transpose() *
+              (cross_v_norm2 * Eigen::Matrix3d::Identity() -
+               std::pow(cross_v_norm2, 3) * cross_v * cross_v.transpose()) *
+              (Eigen::Vector3d(-1, -1, -1).cross(v2 - v0) +
+               (v1 - v0).cross(Eigen::Vector3d(-1, -1, -1)));
         }
       }
     }

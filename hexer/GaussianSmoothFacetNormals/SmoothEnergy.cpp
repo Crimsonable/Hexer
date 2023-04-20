@@ -50,16 +50,11 @@ auto TetGenSphere() {
   projectUnitSphere(sphere_surface);
   cinolib::DrawablePolygonmesh<> surface_mesh(sphere_surface.vector_verts(),
                                               sphere_surface.vector_polys());
-  std::vector<double> verts;
-  std::vector<uint> edges, tets;
-  double vol_thresh = 0.01 * sphere_surface.bbox().diag();
-  char opt[100];
-  sprintf(opt, "YQqa%f", vol_thresh);
-  cinolib::tetgen_wrap(
-      cinolib::serialized_xyz_from_vec3d(sphere_surface.vector_verts()),
-      cinolib::serialized_vids_from_polys(sphere_surface.vector_polys()), edges,
-      opt, verts, tets);
-  cinolib::DrawableTetmesh<> tet_mesh(verts, tets);
+  std::vector<cinolib::vec3d> v_out;
+  std::vector<uint> e_in, p_out;
+  cinolib::tetgen_wrap(surface_mesh.vector_verts(), surface_mesh.vector_polys(),
+                       e_in, "", v_out, p_out);
+  cinolib::DrawableTetmesh<> tet_mesh(v_out, p_out);
 
   return tet_mesh;
 }
