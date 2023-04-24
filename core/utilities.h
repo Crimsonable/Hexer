@@ -107,9 +107,10 @@ public:
       _mesh.vert_add(mesh.vert(vid));
 
     for (int pid = 0; pid < mesh.num_poly(); ++pid) {
-      std::vector<int> pids =
+      auto pids =
           mesh.adj_p2v(pid) |
-          ranges::views::transform([&](int i) { return new_index[i]; });
+          ranges::views::transform([&](int i) { return new_index[i]; }) |
+          ranges::to<std::vector>();
       _mesh.poly_add(pids);
     }
     return _mesh;
