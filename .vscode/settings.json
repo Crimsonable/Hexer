@@ -130,9 +130,9 @@
         "__locale": "cpp",
         "*.rh": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabled",
+    "C_Cpp.errorSquiggles": "disabled",
     "cmake.configureSettings": {
-        //"CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        "CMAKE_TOOLCHAIN_FILE": "A:/buildTools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        //"CMAKE_TOOLCHAIN_FILE": "A:/buildTools/vcpkg/scripts/buildsystems/vcpkg.cmake"
     }
 }

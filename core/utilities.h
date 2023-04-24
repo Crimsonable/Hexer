@@ -82,4 +82,37 @@ public:
     return color_map;
   }
 };
+
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class RerangeVertexByColor
+    : Public CrtpExprBase<device, RerangerVertexByColor<device, ParamTuple>,
+                          ParamTuple> {
+public:
+  template <typename MeshType>
+  auto eval(MeshType<M, V, E, P> &mesh,
+            const std::map<int, std::vector<int>> &color_map) {
+    std::map<int, int> new_index;
+    new_index.reserve(mesh.num_verts());
+    std::vector<int> color_label(color_map.size(), 0);
+
+    for (const auto &[key, val] : color_map) {
+      for (int vid = color_lable.back(); vid < val.size() + color_label.back();
+           ++vid)
+        new_index[val[vid]] = vid;
+      color_label.push_back(val.size());
+    }
+
+    MeshType _mesh;
+    for (auto vid : new_index)
+      _mesh.vert_add(mesh.vert(vid));
+
+    for (int pid = 0; pid < mesh.num_poly(); ++pid) {
+      std::vector<int> pids =
+          mesh.adj_p2v(pid) |
+          ranges::views::transform([&](int i) { return new_index[i]; });
+      _mesh.poly_add(pids);
+    }
+    return _mesh;
+  }
+};
 } // namespace Hexer
