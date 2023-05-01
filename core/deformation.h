@@ -2,6 +2,7 @@
 #include "bfgs.h"
 #include "cinolib_enhance.h"
 #include "expr.h"
+#include "graph.h"
 #include "mesh.h"
 
 #include <cinolib/meshes/meshes.h>
@@ -287,12 +288,7 @@ public:
         n_gsn += cal_gsn.squaredNorm();
 
         if (gradient) {
-          d_gsn +=
-              2 * cross_v.transpose() *
-              (cross_v_norm2 * Eigen::Matrix3d::Identity() -
-               std::pow(cross_v_norm2, 3) * cross_v * cross_v.transpose()) *
-              (Eigen::Vector3d(-1, -1, -1).cross(v2 - v0) +
-               (v1 - v0).cross(Eigen::Vector3d(-1, -1, -1)));
+          
         }
       }
     }
@@ -450,20 +446,25 @@ public:
   template <typename M, typename V, typename E, typename F, typename P>
   auto eval(cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
             DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
-    auto deform_op = DeformEnergy()(mesh, d_options);
-    auto facet_op = FacetNormalsEnergy()(mesh, f_options);
-    auto functor = MeshDeformFunctor(mesh, deform_op, facet_op);
-    Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
-        mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
+    std::vector<int> color_label;
+    
+    auto _mesh = VertexColoring()(mesh, SortOrder::AscendOrder) |
+                 GraphColorMap() | RerangeVertexByColor()(mesh) | evalOp();
 
-    PolyhedralSurfMarker()(mesh).execute();
-    deform_op.execute(x);
-    facet_op.execute(x);
+    // auto deform_op = DeformEnergy()(mesh, d_options);
+    // auto facet_op = FacetNormalsEnergy()(mesh, f_options);
+    // auto functor = MeshDeformFunctor(mesh, deform_op, facet_op);
+    // Eigen::VectorXd x = Eigen::Map<Eigen::VectorXd>(
+    //     mesh.vector_verts().data()->ptr(), mesh.num_verts() * 3);
 
-    BFGS<decltype(functor)> solver(functor);
-    solver.solve(x);
+    // PolyhedralSurfMarker()(mesh).execute();
+    // deform_op.execute(x);
+    // facet_op.execute(x);
 
-    VertexUpdate().execute(mesh, x);
+    // BFGS<decltype(functor)> solver(functor);
+    // solver.solve(x);
+
+    // VertexUpdate().execute(mesh, x);
   }
 };
 
