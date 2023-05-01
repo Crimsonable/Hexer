@@ -85,18 +85,16 @@ public:
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class RerangeVertexByColor
-    : Public CrtpExprBase<device, RerangerVertexByColor<device, ParamTuple>,
+    : public CrtpExprBase<device, RerangeVertexByColor<device, ParamTuple>,
                           ParamTuple> {
 public:
   template <typename MeshType>
-  auto eval(MeshType<M, V, E, P> &mesh,
-            const std::map<int, std::vector<int>> &color_map) {
+  auto eval(MeshType &mesh, const std::map<int, std::vector<int>> &color_map) {
     std::map<int, int> new_index;
-    new_index.reserve(mesh.num_verts());
     std::vector<int> color_label(color_map.size(), 0);
 
     for (const auto &[key, val] : color_map) {
-      for (int vid = color_lable.back(); vid < val.size() + color_label.back();
+      for (int vid = color_label.back(); vid < val.size() + color_label.back();
            ++vid)
         new_index[val[vid]] = vid;
       color_label.push_back(val.size());
@@ -113,7 +111,7 @@ public:
           ranges::to<std::vector>();
       _mesh.poly_add(pids);
     }
-    return _mesh;
+    return std::make_tuple(std::move(_mesh), std::move(color_label));
   }
 };
 } // namespace Hexer

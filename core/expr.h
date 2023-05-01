@@ -111,4 +111,10 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class OpBase : public CrtpExprBase<device, OpBase, ParamTuple> {
 public:
 };
+
+template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
+class evalOp : public CrtpExprBase<device, evalOp<device, ParamTuple>, ParamTuple> {
+public:
+  template <typename Expr> auto eval(Expr &&expr) { return expr.execute(); }
+};
 } // namespace Hexer

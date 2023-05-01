@@ -13,7 +13,7 @@ target_sources(
         transformation.h
         bfgs.h
         solverbase.h
-        utilities.h
+        graph.h
         threadpool.h
         tessellation.h
         hexer_core.h
