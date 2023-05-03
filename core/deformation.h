@@ -281,14 +281,40 @@ public:
         auto v1 = x.block<3, 1>(adj_vid[(offset + 1) % 3] * 3, 0);
         auto v2 = x.block<3, 1>(adj_vid[(offset + 2) % 3] * 3, 0);
 
-        Eigen::Vector3d cross_v = (v1 - v0).cross(v2 - v0);
+        Eigen::Vector3d vs1 = v1 - v0;
+        Eigen::Vector3d vs2 = v2 - v0;
+        Eigen::Vector3d cross_v = vs1.cross(vs2);
         double cross_v_norm2 = 1.0 / cross_v.norm();
         Eigen::Vector3d cal_gsn =
             cross_v * cross_v_norm2 - _gsn.col(_face_map[fid]);
         n_gsn += cal_gsn.squaredNorm();
 
         if (gradient) {
-          
+          Eigen::Matrix3d d_vs;
+
+          Eigen::Vector3d d_vs_x(0, vs1[2] - vs2[2], vs2[1] - vs1[1]);
+          double d_vd_x =
+              cross_v_norm2 * (vs[1] * d_vs_x[1] + vs[2] * d_vs_x[2]);
+          d_vs_x = cross_v_norm2 * d_vs_x -
+                   cross_v_norm2 * cross_v_norm2 * d_vd_x * cross_v;
+
+          Eigen::Vector3d d_vs_y(vs2[2] - vs1[2], 0, vs1[0] - vs2[0]);
+          double d_vd_y =
+              cross_v_norm2 * (vs[0] * d_vs_y[0] + vs[2] * d_vs_y[2]);
+          d_vs_y = cross_v_norm2 * d_vs_y -
+                   cross_v_norm2 * cross_v_norm2 * d_vd_y * cross_v;
+
+          Eigen::Vector3d d_vs_z(vs1[1] - vs2[1], vs2[0] - vs1[0], 0);
+          double d_vd_z =
+              cross_v_norm2 * (vs[0] * d_vs_z[0] + vs[1] * d_vs_z[1]);
+          d_vs_z = cross_v_norm2 * d_vs_z -
+                   cross_v_norm2 * cross_v_norm2 * d_vd_z * cross_v;
+
+          d_vs.row(0) = d_vs_x.transpose();
+          d_vs.row(1) = d_vs_y.transpose();
+          d_vs.row(2) = d_vs_z.transpose();
+
+          d_gsn = 2 * d_vs * cal_gsn;
         }
       }
     }
@@ -447,7 +473,7 @@ public:
   auto eval(cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
             DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
     std::vector<int> color_label;
-    
+
     auto _mesh = VertexColoring()(mesh, SortOrder::AscendOrder) |
                  GraphColorMap() | RerangeVertexByColor()(mesh) | evalOp();
 
