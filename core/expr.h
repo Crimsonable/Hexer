@@ -113,8 +113,16 @@ public:
 };
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
-class evalOp : public CrtpExprBase<device, evalOp<device, ParamTuple>, ParamTuple> {
+class evalOp
+    : public CrtpExprBase<device, evalOp<device, ParamTuple>, ParamTuple> {
 public:
   template <typename Expr> auto eval(Expr &&expr) { return expr.execute(); }
 };
+
+template <typename Expr, typename Device>
+  requires(Meta::ConceptExpr<Expr>)
+auto operator|(Expr1 &&exp, evalOp<Device> eval) {
+  return exp.execute();
+}
+
 } // namespace Hexer
