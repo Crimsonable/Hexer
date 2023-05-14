@@ -1,14 +1,15 @@
 #pragma once
+#include <cinolib/meshes/meshes.h>
+
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
+#include <numeric>
+#include <range/v3/all.hpp>
+
 #include "bfgs.h"
 #include "cinolib_enhance.h"
 #include "expr.h"
 #include "graph.h"
 #include "mesh.h"
-
-#include <cinolib/meshes/meshes.h>
-#include <eigen3/unsupported/Eigen/NonLinearOptimization>
-#include <numeric>
-#include <range/v3/all.hpp>
 
 namespace Hexer {
 enum class SmoothMethod { UNIFORM, COTANGENT };
@@ -20,7 +21,7 @@ struct LaplacianOptions {
 };
 
 class UniformWeighter {
-public:
+ public:
   template <typename M, typename V, typename E, typename P>
   void operator()(std::vector<Eigen::Triplet<double>> &entries, int nv,
                   int current_vid,
@@ -28,8 +29,7 @@ public:
     auto ring = mesh.vert_n_ring(current_vid, 1);
     std::vector<int> offset;
 
-    for (int i = 0; i < nv; ++i)
-      offset.push_back(i * mesh.num_verts());
+    for (int i = 0; i < nv; ++i) offset.push_back(i * mesh.num_verts());
 
     for (auto &&_offset : offset)
       entries.emplace_back(current_vid + _offset, current_vid + _offset,
@@ -42,13 +42,12 @@ public:
 };
 
 class CotangentWeighter {
-public:
+ public:
   template <typename M, typename V, typename E, typename P>
   void operator()(std::vector<Eigen::Triplet<double>> &entries, int nv,
                   int current_vid, const cinolib::Trimesh<M, V, E, P> &mesh) {
     std::vector<int> offset;
-    for (int i = 0; i < nv; ++i)
-      offset.push_back(i * mesh.num_verts());
+    for (int i = 0; i < nv; ++i) offset.push_back(i * mesh.num_verts());
 
     // caculate cotangent weight using cinolib internal function
     std::vector<std::pair<int, double>> weight;
@@ -71,7 +70,7 @@ public:
 };
 
 class AverageWeighter {
-public:
+ public:
   template <typename M, typename V, typename E, typename P>
   void operator()(std::vector<Eigen::Triplet<double>> &entries, int nv,
                   int current_vid, const cinolib::Trimesh<M, V, E, P> &mesh) {}
@@ -82,7 +81,7 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class LaplacianMatrix
     : public CrtpExprBase<Device::CPU, LaplacianMatrix<device, ParamTuple>,
                           ParamTuple> {
-public:
+ public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const LaplacianOptions &options,
                    cinolib::AbstractMesh<M, V, E, P> &mesh) {
@@ -118,7 +117,7 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class LaplacianSmoother
     : public CrtpExprBase<device, LaplacianSmoother<device, ParamTuple>,
                           ParamTuple> {
-public:
+ public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(const LaplacianOptions &options,
                    Eigen::SparseMatrix<double> &&Laplacian,
@@ -171,7 +170,7 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GaussianDistanceWeight
     : public CrtpExprBase<device, GaussianDistanceWeight<device, ParamTuple>,
                           ParamTuple> {
-public:
+ public:
   auto eval(const Eigen::Matrix3Xd &normals, const Eigen::Matrix3Xd &centers,
             const Eigen::VectorXd &areas, double sigma, int fid) {
     Eigen::Vector3d gn{0, 0, 0};
@@ -196,7 +195,7 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GaussianSmoothFacetNormals
     : public CrtpExprBase<
           device, GaussianSmoothFacetNormals<device, ParamTuple>, ParamTuple> {
-public:
+ public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(cinolib::AbstractPolygonMesh<M, V, E, P> &mesh,
                    const FacetNormalDeformOption &options) {
@@ -260,17 +259,17 @@ class FacetNormalsEnergy
   Eigen::Matrix3Xd _gsn;
   std::map<int, int> _face_map;
 
-public:
+ public:
   template <typename... Args>
   FacetNormalsEnergy(Args &&...args)
       : CrtpExprBase<device, FacetNormalsEnergy<device, ParamTuple>,
                      ParamTuple>(std::forward<decltype(args)>(args)...) {}
 
   template <typename M, typename V, typename E, typename F, typename P>
-  HEXER_INLINE auto
-  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       FacetNormalDeformOption options, const Eigen::VectorXd &x, int vid,
-       bool gradient) {
+  HEXER_INLINE auto eval(
+      const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+      FacetNormalDeformOption options, const Eigen::VectorXd &x, int vid,
+      bool gradient) {
     double n_gsn = 0.0;
     Eigen::Vector3d d_gsn(0, 0, 0);
     for (auto fid : mesh.adj_v2f(vid)) {
@@ -356,16 +355,16 @@ class DeformEnergy
     return A;
   }
 
-public:
+ public:
   template <typename... Args>
   DeformEnergy(Args &&...args)
       : CrtpExprBase<device, DeformEnergy<device, ParamTuple>, ParamTuple>(
             std::forward<decltype(args)>(args)...) {}
 
   template <typename M, typename V, typename E, typename F, typename P>
-  HEXER_INLINE auto
-  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       DeformEnergyOptions options, const Eigen::VectorXd &x) {
+  HEXER_INLINE auto eval(
+      const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+      DeformEnergyOptions options, const Eigen::VectorXd &x) {
     if (_A0.size() == 0) {
       _A0.resize(3, mesh.num_polys() * 12);
       auto x = Eigen::Map<Eigen::VectorXd>(
@@ -386,10 +385,10 @@ public:
   }
 
   template <typename M, typename V, typename E, typename F, typename P>
-  HEXER_INLINE auto
-  eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       DeformEnergyOptions options, const Eigen::VectorXd &x, int vid,
-       bool gradient) {
+  HEXER_INLINE auto eval(
+      const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
+      DeformEnergyOptions options, const Eigen::VectorXd &x, int vid,
+      bool gradient) {
     double energy = 0.0;
     Eigen::Vector3d d_energy(0, 0, 0);
 
@@ -421,10 +420,6 @@ public:
         d_A.row(1) = d_A.row(0);
         d_A.row(2) = d_A.row(1);
 
-        // std::cout << "A_inv:\n" << A_inv << std::endl;
-        // std::cout << "d_A:\n" << d_A << std::endl;
-        // std::cout<<"prefix:\n"<<g_prefix<<std::endl;
-
         d_energy +=
             d_A.cwiseProduct(g_prefix).rowwise().sum() +
             0.5 * (A_det * A_inv.transpose()).cwiseProduct(d_A).rowwise().sum();
@@ -436,10 +431,14 @@ public:
 
 template <typename Mesh, typename DeformE, typename FacetE>
 struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
-  MeshDeformFunctor(Mesh &mesh, DeformE &deformE, FacetE &facetE)
+  MeshDeformFunctor(Mesh &mesh, DeformE &deformE, FacetE &facetE, int start_id,
+                    int end_id)
       : _mesh(mesh),
         Functor<double, Eigen::Dynamic, 1>(mesh.num_verts() * 3, 1),
-        _deformE(deformE), _facetE(facetE) {}
+        _deformE(deformE),
+        _facetE(facetE),
+        _sid(start_id),
+        _eid(end_id) {}
 
   HEXER_INLINE auto evalOneVertex(const Eigen::VectorXd &x, int vid,
                                   bool gradient) {
@@ -451,11 +450,10 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec,
                  Eigen::VectorXd &fjac, bool gradient) {
     fvec[0] = 0;
-    for (int vid = 0; vid < _mesh.num_verts(); ++vid) {
+    for (int vid = _sid; vid < _eid; ++vid) {
       auto [fval, d_fval] = evalOneVertex(x, vid, gradient);
       fvec[0] += fval;
-      if (gradient)
-        fjac.block<3, 1>(vid * 3, 0) = d_fval;
+      if (gradient) fjac.block<3, 1>(vid * 3, 0) = d_fval;
     }
     return 0;
   }
@@ -463,19 +461,50 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
   Mesh &_mesh;
   DeformE &_deformE;
   FacetE &_facetE;
+  int _sid;
+  int _eid;
 };
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class PolyCubeGen
     : public CrtpExprBase<device, PolyCubeGen<device, ParamTuple>, ParamTuple> {
-public:
+ public:
   template <typename M, typename V, typename E, typename F, typename P>
   auto eval(cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-            DeformEnergyOptions d_options, FacetNormalDeformOption f_options) {
-    std::vector<int> color_label;
+            DeformEnergyOptions d_options, FacetNormalDeformOption f_options,
+            int iter_n) {
+    // rerange mesh index by color group, vertices belong to one group are
+    // placed togather
+    auto [_mesh, groups] = VertexColoring()(mesh, SortOrder::AscendOrder) |
+                           GraphColorMap() | RerangeVertexByColor()(mesh) |
+                           evalOp();
+    // after rerange the index, mark the surface vertices flags
+    PolyhedralSurfMarker()(_mesh).execute();
 
-    auto _mesh = VertexColoring()(mesh, SortOrder::AscendOrder) |
-                 GraphColorMap() | RerangeVertexByColor()(mesh) | evalOp();
+    // construct deform operators for mesh, the deform operator is irrelevant
+    // with color group
+    auto deform_op = DeformEnergy()(_mesh, d_options);
+    auto facet_op = FacetNormalsEnergy()(_mesh, f_options);
+    using SolverFunctorType =
+        decltype(MeshDeformFunctor(_mesh, deform_op, facet_op, 0, 0));
+    std::vector<BFGS<SolverFunctorType>> solver_list;
+
+    // construct solver for each color group
+    for (auto [i, val] : groups | ranges::views::enumerate)
+      solver_list.emplace_back(MeshDeformFunctor(_mesh, deform_op, facet_op,
+                                                 i ? groups[i - 1] : 0, val));
+
+    for (int _iter = 0; _iter < iter_n; ++_iter) {
+      // optimize only one color group once
+      for (auto [i, val] : groups | ranges::views::enumerate) {
+        int sid = i ? groups[i - 1] : 0;
+        auto &solver = solver_list[i];
+        auto x_partial = Eigen::Map<Eigen::VectorXd>(
+            _mesh.vector_verts().data()->ptr() + sid * 3, val * 3);
+        solver.solve(x_partial);
+      }
+      spdlog::info("iter: {} finished.", _iter);
+    }
 
     // auto deform_op = DeformEnergy()(mesh, d_options);
     // auto facet_op = FacetNormalsEnergy()(mesh, f_options);
@@ -494,4 +523,4 @@ public:
   }
 };
 
-} // namespace Hexer
+}  // namespace Hexer

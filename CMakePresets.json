@@ -1,7 +1,6 @@
 ﻿{
     "version": 3,
-    "configurePresets": [
-        {
+    "configurePresets": [{
             "name": "windows-base",
             "hidden": true,
             "generator": "Ninja",
@@ -15,14 +14,14 @@
                 "strategy": "external",
                 "value": "v143,host=x64"
             },
-          "cacheVariables": {
-            "CMAKE_C_COMPILER": "cl.exe",
-            "CMAKE_CXX_COMPILER": "cl.exe",
-            "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-            "CMAKE_LINKER": "D:/vs2022/VC/Tools/MSVC/14.35.32215/bin/Hostx64/x64/link.exe",
-            "CMAKE_CXX_STANDARD": "20",
-            "CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
-          }
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+                "CMAKE_LINKER": "D:/vs2022/VC/Tools/MSVC/14.35.32215/bin/Hostx64/x64/link.exe",
+                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_TOOLCHAIN_FILE": "G:/buildtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            }
         },
         {
             "name": "x64-debug",
@@ -49,8 +48,7 @@
             }
         }
     ],
-    "buildPresets": [
-        {
+    "buildPresets": [{
             "name": "x64-release",
             "configurePreset": "x64-release",
             "verbose": true
