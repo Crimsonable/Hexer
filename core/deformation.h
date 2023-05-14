@@ -282,10 +282,9 @@ class FacetNormalsEnergy
 
         Eigen::Vector3d vs1 = v1 - v0;
         Eigen::Vector3d vs2 = v2 - v0;
-        Eigen::Vector3d cross_v = vs1.cross(vs2);
-        double cross_v_norm2 = 1.0 / cross_v.norm();
-        Eigen::Vector3d cal_gsn =
-            cross_v * cross_v_norm2 - _gsn.col(_face_map[fid]);
+        Eigen::Vector3d vs = vs1.cross(vs2);
+        double cross_v_norm2 = 1.0 / vs.norm();
+        Eigen::Vector3d cal_gsn = vs * cross_v_norm2 - _gsn.col(_face_map[fid]);
         n_gsn += cal_gsn.squaredNorm();
 
         if (gradient) {
@@ -295,19 +294,19 @@ class FacetNormalsEnergy
           double d_vd_x =
               cross_v_norm2 * (vs[1] * d_vs_x[1] + vs[2] * d_vs_x[2]);
           d_vs_x = cross_v_norm2 * d_vs_x -
-                   cross_v_norm2 * cross_v_norm2 * d_vd_x * cross_v;
+                   cross_v_norm2 * cross_v_norm2 * d_vd_x * vs;
 
           Eigen::Vector3d d_vs_y(vs2[2] - vs1[2], 0, vs1[0] - vs2[0]);
           double d_vd_y =
               cross_v_norm2 * (vs[0] * d_vs_y[0] + vs[2] * d_vs_y[2]);
           d_vs_y = cross_v_norm2 * d_vs_y -
-                   cross_v_norm2 * cross_v_norm2 * d_vd_y * cross_v;
+                   cross_v_norm2 * cross_v_norm2 * d_vd_y * vs;
 
           Eigen::Vector3d d_vs_z(vs1[1] - vs2[1], vs2[0] - vs1[0], 0);
           double d_vd_z =
               cross_v_norm2 * (vs[0] * d_vs_z[0] + vs[1] * d_vs_z[1]);
           d_vs_z = cross_v_norm2 * d_vs_z -
-                   cross_v_norm2 * cross_v_norm2 * d_vd_z * cross_v;
+                   cross_v_norm2 * cross_v_norm2 * d_vd_z * vs;
 
           d_vs.row(0) = d_vs_x.transpose();
           d_vs.row(1) = d_vs_y.transpose();
@@ -442,9 +441,9 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
 
   HEXER_INLINE auto evalOneVertex(const Eigen::VectorXd &x, int vid,
                                   bool gradient) {
-    // auto [normal_e, d_normal_e] = _deformE.execute(x, vid, gradient);
+    auto [normal_e, d_normal_e] = _deformE.execute(x, vid, gradient);
     auto [facet_e, d_facet_e] = _facetE.execute(x, vid, gradient);
-    return std::make_pair(facet_e, (d_facet_e).eval());
+    return std::make_pair(facet_e + normal_e, d_facet_e + d_normal_e);
   }
 
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec,

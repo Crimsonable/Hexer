@@ -1,13 +1,13 @@
-#include <iostream>
-#include <vector>
-
 #include <cinolib/gl/glcanvas.h>
 #include <cinolib/meshes/meshes.h>
 #include <cinolib/tetgen_wrap.h>
-
-#include "test_utility.h"
 #include <core/hexer_core.h>
 #include <core/old_deformation.h>
+
+#include <iostream>
+#include <vector>
+
+#include "test_utility.h"
 
 auto build_test_cube() {
   cinolib::DrawablePolygonmesh<> mesh;
@@ -106,8 +106,7 @@ int TestGraphColoring() {
         check_flag = false;
         break;
       }
-    if (!check_flag)
-      break;
+    if (!check_flag) break;
   }
   std::cout << "Graph Coloring Check: " << check_flag << std::endl;
 
@@ -159,7 +158,7 @@ int testPolyCubeOptimization() {
   Hexer::FacetNormalDeformOption f_options;
 
   hexer_timer(
-      [&]() { Hexer::PolyCubeGen()(mesh, d_options, f_options).execute(); },
+      [&]() { Hexer::PolyCubeGen()(mesh, d_options, f_options, 1).execute(); },
       "PolyCube Gen ");
 
   mesh.updateGL();
@@ -173,8 +172,7 @@ void test_adj_v2p() {
   int count = 0;
   int count_min = 10000;
   for (int vid = 0; vid < mesh.num_verts(); ++vid) {
-    if (mesh.adj_v2p(vid).size() > count)
-      count = mesh.adj_v2p(vid).size();
+    if (mesh.adj_v2p(vid).size() > count) count = mesh.adj_v2p(vid).size();
     if (mesh.adj_v2p(vid).size() < count_min)
       count_min = mesh.adj_v2p(vid).size();
   }
@@ -188,8 +186,7 @@ auto debugDeformation() {
   for (int vid = 0; vid < mesh.num_verts(); ++vid) {
     int count = 0;
     for (int pid = 0; pid < mesh.num_polys(); ++pid) {
-      if (mesh.poly_contains_vert(pid, vid))
-        count++;
+      if (mesh.poly_contains_vert(pid, vid)) count++;
     }
     std::cout << count << std::endl;
   }

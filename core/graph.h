@@ -1,10 +1,11 @@
 #pragma once
 
-#include "base.h"
-
 #include <cinolib/meshes/meshes.h>
+
 #include <map>
 #include <range/v3/all.hpp>
+
+#include "base.h"
 
 namespace Hexer {
 enum class SortOrder { DescendOrder, AscendOrder };
@@ -12,7 +13,7 @@ enum class SortOrder { DescendOrder, AscendOrder };
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class Order
     : public CrtpExprBase<device, Order<device, ParamTuple>, ParamTuple> {
-public:
+ public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractMesh<M, V, E, P> &mesh, SortOrder order) {
     std::vector<int> ids = ranges::views::iota(0, int(mesh.num_verts())) |
@@ -34,7 +35,7 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class VertexColoring
     : public CrtpExprBase<device, VertexColoring<device, ParamTuple>,
                           ParamTuple> {
-public:
+ public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractMesh<M, V, E, P> &mesh,
             SortOrder orderRule) {
@@ -54,13 +55,11 @@ public:
       int current_vid = order[vid];
 
       for (const auto &adjv : mesh.adj_v2v(current_vid))
-        if (color[adjv] != -1)
-          marks[color[adjv]] = 1;
+        if (color[adjv] != -1) marks[color[adjv]] = 1;
 
       int c = 0;
       for (; c < max_colors; ++c)
-        if (marks[c] == -1)
-          break;
+        if (marks[c] == -1) break;
       color[current_vid] = c;
     }
     return color;
@@ -71,7 +70,7 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GraphColorMap
     : public CrtpExprBase<device, GraphColorMap<device, ParamTuple>,
                           ParamTuple> {
-public:
+ public:
   auto eval(const std::vector<int> &colors) {
     std::map<int, std::vector<int>> color_map;
     for (auto [vid, c] : colors | ranges::views::enumerate) {
@@ -87,9 +86,9 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class RerangeVertexByColor
     : public CrtpExprBase<device, RerangeVertexByColor<device, ParamTuple>,
                           ParamTuple> {
-public:
+ public:
   template <typename MeshType>
-  auto eval(MeshType &mesh, const std::map<int, std::vector<int>> &color_map) {
+  auto eval(const std::map<int, std::vector<int>> &color_map, MeshType &mesh) {
     std::map<int, int> new_index;
     std::vector<int> color_label(color_map.size(), 0);
 
@@ -101,8 +100,7 @@ public:
     }
 
     MeshType _mesh;
-    for (auto vid : new_index)
-      _mesh.vert_add(mesh.vert(vid));
+    for (auto vid : new_index) _mesh.vert_add(mesh.vert(vid));
 
     for (int pid = 0; pid < mesh.num_poly(); ++pid) {
       auto pids =
@@ -114,4 +112,4 @@ public:
     return std::make_tuple(std::move(_mesh), std::move(color_label));
   }
 };
-} // namespace Hexer
+}  // namespace Hexer

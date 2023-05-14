@@ -119,9 +119,9 @@ public:
   template <typename Expr> auto eval(Expr &&expr) { return expr.execute(); }
 };
 
-template <typename Expr, typename Device>
+template <typename Expr, Device device>
   requires(Meta::ConceptExpr<Expr>)
-auto operator|(Expr1 &&exp, evalOp<Device> eval) {
+auto operator|(Expr &&exp, evalOp<device> eval) {
   return exp.execute();
 }
 
