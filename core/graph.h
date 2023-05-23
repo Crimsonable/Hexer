@@ -13,7 +13,7 @@ enum class SortOrder { DescendOrder, AscendOrder };
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class Order
     : public CrtpExprBase<device, Order<device, ParamTuple>, ParamTuple> {
- public:
+public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractMesh<M, V, E, P> &mesh, SortOrder order) {
     std::vector<int> ids = ranges::views::iota(0, int(mesh.num_verts())) |
@@ -35,7 +35,7 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class VertexColoring
     : public CrtpExprBase<device, VertexColoring<device, ParamTuple>,
                           ParamTuple> {
- public:
+public:
   template <typename M, typename V, typename E, typename P>
   auto eval(const cinolib::AbstractMesh<M, V, E, P> &mesh,
             SortOrder orderRule) {
@@ -55,11 +55,13 @@ class VertexColoring
       int current_vid = order[vid];
 
       for (const auto &adjv : mesh.adj_v2v(current_vid))
-        if (color[adjv] != -1) marks[color[adjv]] = 1;
+        if (color[adjv] != -1)
+          marks[color[adjv]] = 1;
 
       int c = 0;
       for (; c < max_colors; ++c)
-        if (marks[c] == -1) break;
+        if (marks[c] == -1)
+          break;
       color[current_vid] = c;
     }
     return color;
@@ -70,7 +72,7 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class GraphColorMap
     : public CrtpExprBase<device, GraphColorMap<device, ParamTuple>,
                           ParamTuple> {
- public:
+public:
   auto eval(const std::vector<int> &colors) {
     std::map<int, std::vector<int>> color_map;
     for (auto [vid, c] : colors | ranges::views::enumerate) {
@@ -86,30 +88,36 @@ template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
 class RerangeVertexByColor
     : public CrtpExprBase<device, RerangeVertexByColor<device, ParamTuple>,
                           ParamTuple> {
- public:
+public:
   template <typename MeshType>
   auto eval(const std::map<int, std::vector<int>> &color_map, MeshType &mesh) {
-    std::map<int, int> new_index;
-    std::vector<int> color_label(color_map.size(), 0);
+    std::map<uint, uint> new_index;
+    std::vector<int> color_label;
 
     for (const auto &[key, val] : color_map) {
-      for (int vid = color_label.back(); vid < val.size() + color_label.back();
-           ++vid)
-        new_index[val[vid]] = vid;
-      color_label.push_back(val.size());
+      for (int vid = 0; vid < val.size(); ++vid) {
+        uint current_vid =
+            vid + (color_label.size() == 0 ? 0 : color_label.back());
+        new_index[val[vid]] = current_vid;
+      }
+      color_label.push_back(val.size() +
+                            (color_label.size() == 0 ? 0 : color_label.back()));
     }
 
     MeshType _mesh;
-    for (auto vid : new_index) _mesh.vert_add(mesh.vert(vid));
+    for (uint i = 0; i < mesh.num_verts(); ++i)
+      _mesh.vert_add(cinolib::vec3d(0, 0, 0));
+    for (auto vid : new_index)
+      _mesh.vert(vid.second) = mesh.vert(vid.first);
 
-    for (int pid = 0; pid < mesh.num_poly(); ++pid) {
+    for (uint pid = 0; pid < mesh.num_polys(); ++pid) {
       auto pids =
           mesh.adj_p2v(pid) |
-          ranges::views::transform([&](int i) { return new_index[i]; }) |
+          ranges::views::transform([&](uint i) { return new_index[i]; }) |
           ranges::to<std::vector>();
       _mesh.poly_add(pids);
     }
     return std::make_tuple(std::move(_mesh), std::move(color_label));
   }
 };
-}  // namespace Hexer
+} // namespace Hexer

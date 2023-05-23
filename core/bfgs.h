@@ -67,7 +67,7 @@ template <typename Functor> class BFGS {
   using Scalar = typename Functor::Scalar;
 
 public:
-  BFGS(Functor &functor, BFGSOptions options = BFGSOptions())
+  explicit BFGS(Functor &functor, BFGSOptions options = BFGSOptions())
       : _functor(functor), _options(options) {
     uint m = functor.inputs();
     Bk.resize(m, m);

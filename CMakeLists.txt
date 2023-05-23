@@ -2,13 +2,13 @@
 
 project ("Hexer")
 
-#set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
-#set(HEXER_EXPBLAS_PATH "D:/codes/expblas")
-#set(HEXER_SPDLOG_PATH "A:/MeshGeneration/spdlog/include")
-#set(cinolib_DIR "A:/MeshGeneration/cinolib")
+set(HEXER_EXPBLAS_PATH "A:/MeshGeneration")
+set(cinolib_DIR "A:/MeshGeneration/cinolib")
+
 #set(cinolib_DIR "D:/codes/cinolib")
-set(cinolib_DIR "H:/toys/cinolib")
-set(HEXER_EXPBLAS_PATH "H:/toys/expblas")
+
+#set(cinolib_DIR "H:/toys/cinolib")
+#set(HEXER_EXPBLAS_PATH "H:/toys/expblas")
 
 add_definitions(-D_USE_MATH_DEFINES)
 set(CINOLIB_USES_OPENGL_GLFW_IMGUI ON)
