@@ -89,7 +89,7 @@ public:
       Eigen::Vector<double, 1> new_f;
       Eigen::Vector<double, 1> old_f;
 
-      _functor(x, old_f, gk, true);
+      _functor(old_f, gk, true);
       llt.compute(Bk);
       pk = llt.solve(-gk);
 
