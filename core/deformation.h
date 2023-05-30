@@ -439,6 +439,12 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
         _sid(start_id),
         _eid(end_id) {}
 
+  HEXER_INLINE void initial() {
+    _x_assem.resize(_mesh.num_verts() * 3);
+    _x_assem = Eigen::Map<Eigen::VectorXd>(_mesh.vector_verts().data()->ptr(),
+                                           _mesh.num_verts() * 3);
+  }
+
   // passing new x to calculate energy
   HEXER_INLINE auto evalOneVertex(const Eigen::VectorXd &x, int vid,
                                   bool gradient) {
@@ -468,12 +474,14 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
     return 0;
   }
 
-  // using new x to calculate energy
+  // using new x to calculate energy, x is partial of the original data, need to
+  // be assemabled again
   int operator()(const Eigen::VectorXd &x, Eigen::Vector<double, 1> &fvec,
                  Eigen::VectorXd &fjac, bool gradient) {
     fvec[0] = 0;
+    _x_assem.block(sid * 3, 0, 3 * (eid - sid), 1) = x;
     for (int vid = _sid; vid < _eid; ++vid) {
-      auto [fval, d_fval] = evalOneVertex(x, vid, gradient);
+      auto [fval, d_fval] = evalOneVertex(_x_assem, vid, gradient);
       fvec[0] += fval;
       if (gradient) fjac.block<3, 1>(vid * 3, 0) = d_fval;
     }
@@ -485,6 +493,7 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
   FacetE &_facetE;
   int _sid;
   int _eid;
+  Eigen::VectorXd _x_assem;
 };
 
 template <Device device = Device::CPU, typename ParamTuple = std::tuple<>>
