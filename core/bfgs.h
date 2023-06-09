@@ -67,17 +67,19 @@ template <typename Functor> class BFGS {
   using Scalar = typename Functor::Scalar;
 
 public:
-  explicit BFGS(Functor &functor, BFGSOptions options = BFGSOptions())
-      : _functor(functor), _options(options) {
-    uint m = functor.inputs();
+  explicit BFGS(Functor &functor, Eigen::Vector<Scalar, -1> &buffer_x,
+                BFGSOptions options = BFGSOptions())
+      : _functor(functor), _options(options), _x(buffer_x) {
+    m = functor.inputs();
     Bk.resize(m, m);
     gk.resize(m);
     pk.resize(m);
-    _x.resize(m);
 
     spdlog::drop("OptimalLog");
     logger = spdlog::basic_logger_mt("OptimalLog", "logs/opt.txt", true);
   }
+
+  int inputs() const { return m; }
 
   template <typename VecX> int solve(VecX &x) {
     Bk = Eigen::MatrixX<Scalar>::Identity(x.rows(), x.rows());
@@ -95,13 +97,13 @@ public:
 
       int m = 0;
       for (; m < 20; ++m) {
-        _functor(x + std::pow(_options.rho, m) * pk, new_f, gk, false);
+        _x = x + std::pow(_options.rho, m) * pk;
+        _functor(_x, new_f, gk, false);
         if (new_f[0] <=
             old_f[0] + _options.sigma * std::pow(_options.rho, m) * gk.dot(pk))
           break;
       }
 
-      _x = x + std::pow(_options.rho, m) * pk;
       _functor(_x, old_f, pk, true);
       gk = pk - gk;
       pk = _x - x;
@@ -126,11 +128,12 @@ public:
 
 private:
   Functor &_functor;
+  int m;
   BFGSOptions _options;
   Eigen::MatrixX<Scalar> Bk;
   Eigen::VectorX<Scalar> gk;
   Eigen::VectorX<Scalar> pk;
-  Eigen::VectorX<Scalar> _x;
+  Eigen::VectorX<Scalar>& _x;
 
   std::shared_ptr<spdlog::logger> logger;
 };
