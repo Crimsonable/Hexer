@@ -27,6 +27,7 @@ public:
   int solve(const Eigen::VectorXd &x) {
     _sync_x = x;
     _buffer_x = x;
+    
     for (auto &&[i, solver] : _solvers_list | ranges::views::enumerate) {
       auto range_x = Eigen::Map<Eigen::VectorXd>(
           _sync_x.data() + _ranges[i] * 3, (_ranges[i + 1] - _ranges[i]) * 3);

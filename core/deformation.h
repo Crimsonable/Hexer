@@ -10,6 +10,7 @@
 #include "expr.h"
 #include "graph.h"
 #include "mesh.h"
+#include "ngs.h"
 
 namespace Hexer {
 enum class SmoothMethod { UNIFORM, COTANGENT };
@@ -270,17 +271,17 @@ public:
   template <typename M, typename V, typename E, typename F, typename P>
   HEXER_INLINE auto
   eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       FacetNormalDeformOption options, const Eigen::VectorXd &x,
-       const Eigen::VectorXd &current_x, int vid, bool gradient) {
+       FacetNormalDeformOption options, const Eigen::VectorXd &x, int vid,
+       bool gradient) {
     double n_gsn = 0.0;
     Eigen::Vector3d d_gsn(0, 0, 0);
     for (auto fid : mesh.adj_v2f(vid)) {
       if (mesh.face_data(fid).flags[cinolib::UNUSED_0]) {
         auto &adj_vid = mesh.adj_f2v(fid);
         auto offset = vert_offset_within_tri(mesh, fid, vid);
-        auto v0 = current_x.block<3, 1>(adj_vid[offset] * 3, 0);
-        auto v1 = current_x.block<3, 1>(adj_vid[(offset + 1) % 3] * 3, 0);
-        auto v2 = current_x.block<3, 1>(adj_vid[(offset + 2) % 3] * 3, 0);
+        auto v0 = x.block<3, 1>(adj_vid[offset] * 3, 0);
+        auto v1 = x.block<3, 1>(adj_vid[(offset + 1) % 3] * 3, 0);
+        auto v2 = x.block<3, 1>(adj_vid[(offset + 2) % 3] * 3, 0);
 
         Eigen::Vector3d vs1 = v1 - v0;
         Eigen::Vector3d vs2 = v2 - v0;
@@ -388,15 +389,15 @@ public:
   template <typename M, typename V, typename E, typename F, typename P>
   HEXER_INLINE auto
   eval(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh,
-       DeformEnergyOptions options, const Eigen::VectorXd &x,
-       const Eigen::VectorXd &current_x, int vid, bool gradient) {
+       DeformEnergyOptions options, const Eigen::VectorXd &x, int vid,
+       bool gradient) {
     double energy = 0.0;
     Eigen::Vector3d d_energy(0, 0, 0);
 
     for (auto pid : mesh.adj_v2p(vid)) {
       int off = vert_offset_within_tet(mesh, pid, vid);
       auto A_0 = _A0.block<3, 3>(0, pid * 12 + off * 3);
-      auto A_1 = poly_affine(current_x, vid, mesh.adj_p2v(pid)[(off + 1) % 4],
+      auto A_1 = poly_affine(x, vid, mesh.adj_p2v(pid)[(off + 1) % 4],
                              mesh.adj_p2v(pid)[(off + 2) % 4],
                              mesh.adj_p2v(pid)[(off + 3) % 4]);
       auto A_expr = A_1 * A_0;
@@ -485,34 +486,19 @@ public:
     // with color group
     auto x = Eigen::Map<Eigen::VectorXd>(mesh.vector_verts().data()->ptr(),
                                          mesh.num_verts() * 3);
-    auto deform_op = DeformEnergy()(_mesh, d_options, x);
-    auto facet_op = FacetNormalsEnergy()(_mesh, f_options, x);
-    deform_op.execute();
-    facet_op.execute();
+    Eigen::VectorXd buffer_x = x;
 
-    using SolverFunctorType =
-        decltype(MeshDeformFunctor(_mesh, deform_op, facet_op, 0, 0));
-    std::vector<BFGS<SolverFunctorType>> solver_list;
-    BFGSOptions options;
+    auto deform_op = DeformEnergy()(_mesh, d_options);
+    auto facet_op = FacetNormalsEnergy()(_mesh, f_options);
+    deform_op.execute(x);
+    facet_op.execute(x);
 
-    // construct solver for each color group
-    for (auto [i, val] : groups | ranges::views::enumerate) {
-      auto _functor = MeshDeformFunctor(_mesh, deform_op, facet_op,
-                                        i ? groups[i - 1] : 0, val);
-      solver_list.push_back(BFGS<decltype(_functor)>::BFGS(_functor));
-    }
+    auto solver_functor =
+        MeshDeformFunctor(_mesh, deform_op, facet_op, buffer_x);
 
-    for (int _iter = 0; _iter < iter_n; ++_iter) {
-      // optimize only one color group once
-      for (auto [i, val] : groups | ranges::views::enumerate) {
-        int sid = i ? groups[i - 1] : 0;
-        auto &solver = solver_list[i];
-        auto x_partial = Eigen::Map<Eigen::VectorXd>(
-            _mesh.vector_verts().data()->ptr() + sid * 3, val * 3);
-        solver.solve(x_partial);
-      }
-      spdlog::info("iter: {} finished.", _iter);
-    }
+    GaussSeidel<decltype(solver_functor)> solver(solver_functor, groups,
+                                                 buffer_x);
+    solver.solve(x);
 
     // auto deform_op = DeformEnergy()(mesh, d_options);
     // auto facet_op = FacetNormalsEnergy()(mesh, f_options);
