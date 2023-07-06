@@ -94,14 +94,15 @@ public:
     std::map<uint, uint> new_index;
     std::vector<int> color_label;
 
+    // color_label starts with 0, each value in this vector repersents the total
+    // number of verteices of the current color group
+    color_label.push_back(0);
     for (const auto &[key, val] : color_map) {
       for (int vid = 0; vid < val.size(); ++vid) {
-        uint current_vid =
-            vid + (color_label.size() == 0 ? 0 : color_label.back());
+        uint current_vid = vid + color_label.back();
         new_index[val[vid]] = current_vid;
       }
-      color_label.push_back(val.size() +
-                            (color_label.size() == 0 ? 0 : color_label.back()));
+      color_label.push_back(val.size() + color_label.back());
     }
 
     MeshType _mesh;
