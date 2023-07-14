@@ -431,13 +431,20 @@ public:
   }
 };
 
+// The logic of the current Functor is complicate, it stores the range ids
+// needed to compute the energy and accepts 'x' from the solver, but that's not
+// enough, the solver can only provide part of the real x which can't used to
+// compute the energy, functor needs the whole x vector, that's where buffer_x
+// plays an important role, every time before the solver calls the functor, it
+// will update the buffer_x, so the functor can get the updated x via buffer_x.
 template <typename Mesh, typename DeformE, typename FacetE>
 struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
   MeshDeformFunctor(Mesh &mesh, DeformE &deformE, FacetE &facetE,
-                    Eigen::VectorXd &buffer_x)
+                    Eigen::VectorXd &buffer_x, int sid, int eid)
       : _mesh(mesh),
         Functor<double, Eigen::Dynamic, 1>(mesh.num_verts() * 3, 1),
-        _deformE(deformE), _facetE(facetE), _x_assem(buffer_x) {}
+        _deformE(deformE), _facetE(facetE), _x_assem(buffer_x), _sid(sid),
+        _eid(eid) {}
 
   // passing new x to calculate energy
   HEXER_INLINE auto evalOneVertex(const Eigen::VectorXd &x, int vid,
@@ -461,6 +468,8 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
     return 0;
   }
 
+  int _sid;
+  int _eid;
   Mesh &_mesh;
   DeformE &_deformE;
   FacetE &_facetE;
