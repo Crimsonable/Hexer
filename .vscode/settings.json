@@ -129,7 +129,8 @@
         "jacobi": "cpp",
         "__locale": "cpp",
         "*.rh": "cpp",
-        "__hash_table": "cpp"
+        "__hash_table": "cpp",
+        "codecvt": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "cmake.configureSettings": {

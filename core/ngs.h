@@ -1,14 +1,13 @@
 #include <range/v3/all.hpp>
+#include <range/v3/view/drop_last.hpp>
 
 #include "bfgs.h"
 
 namespace Hexer {
-template <template <typename Mesh, typename DeformeE, typename FacetE>
-          class Functor,
-          typename... Args>
+template <template <typename... ARGS> class Functor, typename... Args>
 class GaussSeidel {
   // deduce the functor's type
-  using FunctorType = typename Functor<Args...>;
+  using FunctorType = typename Functor<std::unwrap_reference_t<Args>...>;
 
 public:
   explicit GaussSeidel(const std::vector<int> &label, Eigen::VectorXd &buffer,
@@ -18,17 +17,20 @@ public:
     // to be cleared, 'label' is an array starts with 0 and ends with the total
     // number of vertices in the mesh
     for (auto [i, r] :
-         label | ranges::views::drop_last | ranges::views::enumerate) {
-      _functors.push_back(FunctorType(std::forward<decltype(args)>(args)...));
+         label | ranges::views::drop_last(1) | ranges::views::enumerate) {
 
       auto solver_buffer = Eigen::Map<Eigen::VectorXd>(buffer.data() + r * 3,
                                                        (label[i + 1] - r) * 3);
+
+      _functors.push_back(FunctorType(std::forward<decltype(args)>(args)...,
+                                      solver_buffer, r * 3,
+                                      (label[i + 1] - r) * 3));
       _solvers_list.push_back(
           BFGS<FunctorType>(_functors.back(), solver_buffer));
     }
   }
 
-  int solve(Eigen::VectorXd &x) {
+  template <typename VecX> int solve(VecX &x) {
     //_sync stores the real value that is being optimized
     _sync_x = x;
     _buffer_x = x;

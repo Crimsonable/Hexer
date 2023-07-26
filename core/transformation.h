@@ -157,8 +157,9 @@ public:
   template <typename M, typename V, typename E, typename P>
   static auto eval(cinolib::AbstractMesh<M, V, E, P> &mesh) {
     Eigen::VectorXd euler{{0, 0, 0}};
+    Eigen::VectorXd buffer_euler = euler;
     GlobalOrientationAlignFunctor functor(mesh);
-    BFGS<decltype(functor)> solver(functor);
+    BFGS<decltype(functor)> solver(functor,euler);
     auto info = solver.solve(euler);
 
     return euler;

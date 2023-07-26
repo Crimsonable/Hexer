@@ -437,14 +437,12 @@ public:
 // compute the energy, functor needs the whole x vector, that's where buffer_x
 // plays an important role, every time before the solver calls the functor, it
 // will update the buffer_x, so the functor can get the updated x via buffer_x.
-template <typename Mesh, typename DeformE, typename FacetE>
+template <typename Integer, typename DeformE, typename FacetE>
 struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
-  MeshDeformFunctor(Mesh &mesh, DeformE &deformE, FacetE &facetE,
+  MeshDeformFunctor(Integer n_verts, DeformE &deformE, FacetE &facetE,
                     Eigen::VectorXd &buffer_x, int sid, int eid)
-      : _mesh(mesh),
-        Functor<double, Eigen::Dynamic, 1>(mesh.num_verts() * 3, 1),
-        _deformE(deformE), _facetE(facetE), _x_assem(buffer_x), _sid(sid),
-        _eid(eid) {}
+      : Functor<double, Eigen::Dynamic, 1>(n_verts * 3, 1), _deformE(deformE),
+        _facetE(facetE), _x_assem(buffer_x), _sid(sid), _eid(eid) {}
 
   // passing new x to calculate energy
   HEXER_INLINE auto evalOneVertex(const Eigen::VectorXd &x, int vid,
@@ -470,7 +468,6 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
 
   int _sid;
   int _eid;
-  Mesh &_mesh;
   DeformE &_deformE;
   FacetE &_facetE;
   Eigen::VectorXd &_x_assem;
@@ -499,14 +496,13 @@ public:
 
     auto deform_op = DeformEnergy()(_mesh, d_options);
     auto facet_op = FacetNormalsEnergy()(_mesh, f_options);
+    int n_verts = _mesh.num_verts();
     deform_op.execute(x);
     facet_op.execute(x);
 
-    auto solver_functor =
-        MeshDeformFunctor(_mesh, deform_op, facet_op, buffer_x);
-
-    GaussSeidel<decltype(solver_functor)> solver(solver_functor, groups,
-                                                 buffer_x);
+    GaussSeidel<MeshDeformFunctor, std::reference_wrapper<int>,
+                decltype(std::ref(deform_op)), decltype(std::ref(facet_op))>
+        solver(groups, buffer_x, n_verts, deform_op, facet_op);
     solver.solve(x);
 
     // auto deform_op = DeformEnergy()(mesh, d_options);
