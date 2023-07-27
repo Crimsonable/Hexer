@@ -70,16 +70,16 @@ public:
   explicit BFGS(Functor &functor, Eigen::Vector<Scalar, -1> &buffer_x,
                 BFGSOptions options = BFGSOptions())
       : _functor(functor), _options(options), _x(buffer_x) {
-    m = functor.inputs();
-    Bk.resize(m, m);
-    gk.resize(m);
-    pk.resize(m);
+    _dim = functor.inputs();
+    Bk.resize(_dim, _dim);
+    gk.resize(_dim);
+    pk.resize(_dim);
 
     spdlog::drop("OptimalLog");
     logger = spdlog::basic_logger_mt("OptimalLog", "logs/opt.txt", true);
   }
 
-  int inputs() const { return m; }
+  int inputs() const { return _dim; }
 
   template <typename VecX> int solve(VecX &x) {
     Bk = Eigen::MatrixX<Scalar>::Identity(x.rows(), x.rows());
@@ -128,7 +128,7 @@ public:
 
 private:
   Functor &_functor;
-  int m;
+  int _dim;
   BFGSOptions _options;
   Eigen::MatrixX<Scalar> Bk;
   Eigen::VectorX<Scalar> gk;
