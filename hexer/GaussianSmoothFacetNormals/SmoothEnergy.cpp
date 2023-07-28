@@ -153,10 +153,11 @@ int testGSN() {
 
 int testPolyCubeOptimization() {
   auto mesh = TetGenSphere();
-  //cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  // cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
   hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
 
   Hexer::DeformEnergyOptions d_options;
+  d_options.s = 1e-5;
   Hexer::FacetNormalDeformOption f_options;
 
   hexer_timer(

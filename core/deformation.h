@@ -449,7 +449,8 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
                                   bool gradient) {
     auto [normal_e, d_normal_e] = _deformE.execute(x, vid, gradient);
     auto [facet_e, d_facet_e] = _facetE.execute(x, vid, gradient);
-    return std::make_pair(facet_e + normal_e, d_facet_e + d_normal_e);
+    Eigen::VectorXd d_fval = d_normal_e + d_facet_e;
+    return std::make_pair(facet_e + normal_e, d_fval);
   }
 
   // using new x to calculate energy, x is partial of the original data, need to
@@ -460,8 +461,12 @@ struct MeshDeformFunctor : public Functor<double, Eigen::Dynamic, 1> {
     for (int i = 0; i < _n; ++i) {
       auto [fval, d_fval] = evalOneVertex(_x_assem, i + _offset, gradient);
       fvec[0] += fval;
-      if (gradient)
+      if (gradient) {
         fjac.block<3, 1>(i * 3, 0) = d_fval;
+        // sometimes the gradient has large number, to avoid numerical error,
+        // normalize the gradient
+        fjac.normalize();
+      }
     }
     return 0;
   }

@@ -117,7 +117,7 @@ public:
 
       // spdlog::get("OptimalLog")
       //     ->info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
-      if (!(k % 10))
+      if (!(k % 1))
         spdlog::info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
 
       x = _x;
