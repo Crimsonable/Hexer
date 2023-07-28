@@ -106,7 +106,8 @@ int TestGraphColoring() {
         check_flag = false;
         break;
       }
-    if (!check_flag) break;
+    if (!check_flag)
+      break;
   }
   std::cout << "Graph Coloring Check: " << check_flag << std::endl;
 
@@ -152,6 +153,7 @@ int testGSN() {
 
 int testPolyCubeOptimization() {
   auto mesh = TetGenSphere();
+  //cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
   hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
 
   Hexer::DeformEnergyOptions d_options;
@@ -172,7 +174,8 @@ void test_adj_v2p() {
   int count = 0;
   int count_min = 10000;
   for (int vid = 0; vid < mesh.num_verts(); ++vid) {
-    if (mesh.adj_v2p(vid).size() > count) count = mesh.adj_v2p(vid).size();
+    if (mesh.adj_v2p(vid).size() > count)
+      count = mesh.adj_v2p(vid).size();
     if (mesh.adj_v2p(vid).size() < count_min)
       count_min = mesh.adj_v2p(vid).size();
   }
@@ -186,7 +189,8 @@ auto debugDeformation() {
   for (int vid = 0; vid < mesh.num_verts(); ++vid) {
     int count = 0;
     for (int pid = 0; pid < mesh.num_polys(); ++pid) {
-      if (mesh.poly_contains_vert(pid, vid)) count++;
+      if (mesh.poly_contains_vert(pid, vid))
+        count++;
     }
     std::cout << count << std::endl;
   }

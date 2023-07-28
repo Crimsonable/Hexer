@@ -63,11 +63,11 @@ enum class DiffMode { Forward, Central };
 //   return nfev;
 // }
 
-template <typename Functor> class BFGS {
+template <typename Functor, typename VecX> class BFGS {
   using Scalar = typename Functor::Scalar;
 
 public:
-  explicit BFGS(Functor &functor, Eigen::Vector<Scalar, -1> &buffer_x,
+  explicit BFGS(Functor &functor, VecX &buffer_x,
                 BFGSOptions options = BFGSOptions())
       : _functor(functor), _options(options), _x(buffer_x) {
     _dim = functor.inputs();
@@ -91,7 +91,7 @@ public:
       Eigen::Vector<double, 1> new_f;
       Eigen::Vector<double, 1> old_f;
 
-      _functor(old_f, gk, true);
+      _functor(x, old_f, gk, true);
       llt.compute(Bk);
       pk = llt.solve(-gk);
 
@@ -117,7 +117,8 @@ public:
 
       // spdlog::get("OptimalLog")
       //     ->info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
-      spdlog::info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
+      if (!(k % 10))
+        spdlog::info("iter: {} | TargetVal: {:03.2f}", k, old_f[0]);
 
       x = _x;
       k++;
@@ -133,7 +134,7 @@ private:
   Eigen::MatrixX<Scalar> Bk;
   Eigen::VectorX<Scalar> gk;
   Eigen::VectorX<Scalar> pk;
-  Eigen::VectorX<Scalar>& _x;
+  VecX &_x;
 
   std::shared_ptr<spdlog::logger> logger;
 };

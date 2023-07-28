@@ -159,7 +159,7 @@ public:
     Eigen::VectorXd euler{{0, 0, 0}};
     Eigen::VectorXd buffer_euler = euler;
     GlobalOrientationAlignFunctor functor(mesh);
-    BFGS<decltype(functor)> solver(functor,euler);
+    BFGS<decltype(functor), decltype(buffer_euler)> solver(functor, buffer_euler);
     auto info = solver.solve(euler);
 
     return euler;
