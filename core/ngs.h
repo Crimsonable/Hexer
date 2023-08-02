@@ -4,9 +4,9 @@
 #include "bfgs.h"
 
 namespace Hexer {
-template <typename FunctorType, typename SolverType> class GaussSeidel {
-
-public:
+template <typename FunctorType, typename SolverType>
+class GaussSeidel {
+ public:
   template <typename... Args>
   explicit GaussSeidel(const std::vector<int> &label, Eigen::VectorXd &buffer,
                        BFGSOptions options, Args &&...args)
@@ -27,26 +27,32 @@ public:
     }
   }
 
-  template <typename VecX> int solve(VecX &x) {
+  template <typename VecX>
+  int solve(VecX &x) {
     //_sync stores the real value that is being optimized
     _sync_x = x;
     _buffer_x = x;
 
-    for (auto &&[i, solver] : _solvers_list | ranges::views::enumerate) {
+    for (auto &&[i, solver] : _solvers_list | ranges::views::drop_last(1) |
+                                  ranges::views::enumerate) {
       auto range_x = (new Eigen::Map<Eigen::VectorXd>(
           _sync_x.data() + _ranges[i] * 3, (_ranges[i + 1] - _ranges[i]) * 3));
       solver.solve(*range_x);
     }
 
+    /*auto range_x = (new Eigen::Map<Eigen::VectorXd>(
+        _sync_x.data() + 0, (_ranges[1] - _ranges[0]) * 3));
+    _solvers_list[0].solve(*range_x);*/
+
     x = _sync_x;
     return 0;
   }
 
-private:
+ private:
   std::vector<FunctorType> _functors;
   std::vector<SolverType> _solvers_list;
   std::vector<int> _ranges;
   Eigen::VectorXd _sync_x;
   Eigen::VectorXd _buffer_x;
 };
-} // namespace Hexer
+}  // namespace Hexer
