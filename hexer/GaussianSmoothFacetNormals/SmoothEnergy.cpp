@@ -60,7 +60,9 @@ auto TetGenSphere() {
 }
 
 void TestEnergy() {
-  cinolib::Polyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  // cinolib::Polyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  cinolib::Polyhedralmesh<> mesh(
+      "../../../models/test_Step-1_PART-1-MESH-1-1f000.vtu");
   MeshAlign(mesh);
 
   Hexer::FacetNormalDeformOption options;
@@ -90,18 +92,19 @@ int TestLoopSubdivision() {
 }
 
 int TestGraphColoring() {
-  cinolib::Polygonmesh<> raw_surface_mesh =
-      Hexer::LoopSubdivision()(unitOctahedron(), 3).execute();
-  projectUnitSphere(raw_surface_mesh);
-  cinolib::DrawablePolygonmesh<> surface_mesh(raw_surface_mesh.vector_verts(),
-                                              raw_surface_mesh.vector_polys());
+  // cinolib::Polygonmesh<> raw_surface_mesh =
+  //     Hexer::LoopSubdivision()(unitOctahedron(), 3).execute();
+  cinolib::DrawablePolyhedralmesh<> mesh(
+      "../../../models/test_Step-1_PART-1-MESH-1-1f000.vtu");
+  // projectUnitSphere(raw_surface_mesh);
+  //  cinolib::DrawablePolygonmesh<> mesh(raw_surface_mesh.vector_verts(),
+  //                                              raw_surface_mesh.vector_polys());
 
   auto color =
-      Hexer::VertexColoring()(surface_mesh, Hexer::SortOrder::DescendOrder)
-          .execute();
+      Hexer::VertexColoring()(mesh, Hexer::SortOrder::DescendOrder).execute();
   bool check_flag = true;
-  for (auto vid : ranges::views::iota(0, int(surface_mesh.num_verts()))) {
-    for (auto adj_vid : surface_mesh.adj_v2v(vid))
+  for (auto vid : ranges::views::iota(0, int(mesh.num_verts()))) {
+    for (auto adj_vid : mesh.adj_v2v(vid))
       if (color[adj_vid] == color[vid]) {
         check_flag = false;
         break;
@@ -115,16 +118,17 @@ int TestGraphColoring() {
   cinolib::vec3d color_ori{1, 1, 0};
   cinolib::vec3d color_ed{0, 0, 1};
   auto color_gap = 1.0 / color_count * (color_ed - color_ori);
-  for (auto vid : ranges::views::iota(0, int(surface_mesh.num_verts()))) {
+  for (auto vid : ranges::views::iota(0, int(mesh.num_verts()))) {
     auto current_color = double(color[vid]) * color_gap + color_ori;
-    surface_mesh.vert_data(vid).color =
+    mesh.vert_data(vid).color =
         cinolib::Color(current_color[0], current_color[1], current_color[2]);
   }
 
-  surface_mesh.show_vert_color();
-  surface_mesh.updateGL();
+  // mesh.show_vert_color();
+  mesh.show_out_vert_color();
+  mesh.updateGL();
   cinolib::GLcanvas gui;
-  gui.push(&surface_mesh);
+  gui.push(&mesh);
   return gui.launch();
 }
 
@@ -152,8 +156,10 @@ int testGSN() {
 }
 
 int testPolyCubeOptimization() {
-  auto mesh = TetGenSphere();
-  // cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  // auto mesh = TetGenSphere();
+  //  cinolib::DrawablePolyhedralmesh<> mesh("../../../models/s01c_cube.vtk");
+  cinolib::DrawablePolyhedralmesh<> mesh(
+      "../../../models/test_Step-1_PART-1-MESH-1-1f000.vtu");
   hexer_timer([&]() { MeshAlign(mesh); }, "Mesh Align ");
 
   Hexer::DeformEnergyOptions d_options;
@@ -206,10 +212,11 @@ auto debugDeformation() {
 }
 
 int main() {
-  testPolyCubeOptimization();
-  //   test_adj_v2p();
-  //   TestLoopSubdivision();
-  //   debugDeformation();
-  // debugDeformation();
+  // testPolyCubeOptimization();
+  //    test_adj_v2p();
+  //    TestLoopSubdivision();
+  //    debugDeformation();
+  //  debugDeformation();
+  TestGraphColoring();
   return 1;
 }
