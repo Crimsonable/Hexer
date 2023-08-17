@@ -18,9 +18,9 @@
                 "CMAKE_C_COMPILER": "cl.exe",
                 "CMAKE_CXX_COMPILER": "cl.exe",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-                "CMAKE_LINKER": "D:/vs2022/VC/Tools/MSVC/14.35.32215/bin/Hostx64/x64/link.exe",
+                
                 "CMAKE_CXX_STANDARD": "20",
-                "CMAKE_TOOLCHAIN_FILE": "G:/buildtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+                "CMAKE_TOOLCHAIN_FILE": "A:/buildtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
             }
         },
         {
