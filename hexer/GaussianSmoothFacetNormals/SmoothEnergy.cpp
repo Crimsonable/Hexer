@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+#include "hexer_core.h"
+
 #include "test_utility.h"
 
 auto build_test_cube() {
@@ -100,35 +102,70 @@ int TestGraphColoring() {
   //  cinolib::DrawablePolygonmesh<> mesh(raw_surface_mesh.vector_verts(),
   //                                              raw_surface_mesh.vector_polys());
 
-  auto color =
-      Hexer::VertexColoring()(mesh, Hexer::SortOrder::DescendOrder).execute();
-  bool check_flag = true;
-  for (auto vid : ranges::views::iota(0, int(mesh.num_verts()))) {
-    for (auto adj_vid : mesh.adj_v2v(vid))
-      if (color[adj_vid] == color[vid]) {
-        check_flag = false;
-        break;
-      }
-    if (!check_flag)
-      break;
-  }
-  std::cout << "Graph Coloring Check: " << check_flag << std::endl;
+  // auto color =
+  //     Hexer::VertexColoring()(mesh,
+  //     Hexer::SortOrder::DescendOrder).execute();
 
-  int color_count = ranges::max(color);
-  cinolib::vec3d color_ori{1, 1, 0};
-  cinolib::vec3d color_ed{0, 0, 1};
-  auto color_gap = 1.0 / color_count * (color_ed - color_ori);
-  for (auto vid : ranges::views::iota(0, int(mesh.num_verts()))) {
-    auto current_color = double(color[vid]) * color_gap + color_ori;
-    mesh.vert_data(vid).color =
-        cinolib::Color(current_color[0], current_color[1], current_color[2]);
+  auto [_mesh, groups] =
+      Hexer::VertexColoring()(mesh, Hexer::SortOrder::AscendOrder) |
+      Hexer::GraphColorMap() | Hexer::RerangeVertexByColor()(mesh) |
+      Hexer::evalOp();
+
+  // bool check_flag = true;
+  // for (auto vid : ranges::views::iota(0, int(_mesh.num_verts()))) {
+  //   for (auto adj_vid : _mesh.adj_v2v(vid))
+  //     if (color[adj_vid] == color[vid]) {
+  //       check_flag = false;
+  //       break;
+  //     }
+  //   if (!check_flag)
+  //     break;
+  // }
+  // std::cout << "Graph Coloring Check: " << check_flag << std::endl;
+
+  int color_count = groups.size() - 1;
+  ColorMap cmap;
+  auto colors = cmap.interp_n(color_count);
+
+  for (auto [i, gp] :
+       groups | ranges::views::drop_last(1) | ranges::views::enumerate) {
+    for (int vid = gp; vid < groups[i + 1]; ++vid) {
+      _mesh.vert_data(vid).color =
+          cinolib::Color(colors[i][0], colors[i][1], colors[2][0]);
+    }
   }
+
+  // for (auto vid : ranges::views::iota(0, int(_mesh.num_verts()))) {
+  //   auto current_color = double(color[vid]) * color_gap + color_ori;
+  //   _mesh.vert_data(vid).color =
+  //       cinolib::Color(current_color[0], current_color[1], current_color[2]);
+  // }
 
   // mesh.show_vert_color();
-  mesh.show_out_vert_color();
-  mesh.updateGL();
+  _mesh.show_out_vert_color();
+  _mesh.show_mesh_points();
+  _mesh.updateGL();
   cinolib::GLcanvas gui;
-  gui.push(&mesh);
+  gui.push(&_mesh);
+  return gui.launch();
+}
+
+int testMeshCopy() {
+  cinolib::DrawablePolyhedralmesh<> mesh(
+      "../../../models/test_Step-1_PART-1-MESH-1-1f000.vtu");
+
+  cinolib::DrawablePolyhedralmesh<> _mesh;
+  for (int i = 0; i < mesh.num_verts(); ++i)
+    _mesh.vert_add(mesh.vert(i));
+  for (int p = 0; p < mesh.num_polys(); ++p)
+    _mesh.poly_add(mesh.adj_p2v(p));
+
+  _mesh.update_f_normals();
+  _mesh.update_v_normals();
+  _mesh.show_out_vert_color();
+  _mesh.updateGL();
+  cinolib::GLcanvas gui;
+  gui.push(&_mesh);
   return gui.launch();
 }
 
@@ -218,5 +255,6 @@ int main() {
   //    debugDeformation();
   //  debugDeformation();
   TestGraphColoring();
+  // testMeshCopy();
   return 1;
 }

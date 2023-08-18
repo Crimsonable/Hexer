@@ -2,6 +2,8 @@
 #include <Expblas/ftensor.h>
 #include <cinolib/dual_mesh.h>
 #include <cinolib/meshes/meshes.h>
+#include <range/v3/all.hpp>
+#include <range/v3/view/linear_distribute.hpp>
 
 void projectUnitSphere(cinolib::Polygonmesh<> &mesh) {
   for (auto &v : mesh.vector_verts())
@@ -108,5 +110,52 @@ public:
     }
     static_cast<cinolib::GLcanvas *>(this)->draw();
     count++;
+  }
+};
+
+class ColorMap {
+  Eigen::Matrix3Xd _colormap = Eigen::Matrix3Xd({{0, 8, 57, 198, 222, 239},
+                                                 {0, 69, 174, 243, 251, 255},
+                                                 {16, 99, 156, 99, 123, 190}});
+  Eigen::VectorXd _ranges;
+
+  void init() {
+    _ranges.resize(_colormap.cols() - 1);
+    for (int i = 0; i < _colormap.cols() - 1; ++i)
+      _ranges[i] = (_colormap.col(i + 1) - _colormap.col(i)).norm();
+
+    for (int i = 1; i < _ranges.size(); ++i)
+      _ranges[i] += _ranges[i - 1];
+  }
+
+public:
+  ColorMap(const Eigen::Matrix3Xd &color_map) : _colormap(color_map) { init(); }
+
+  ColorMap() { init(); }
+
+  Eigen::Vector3d interp(double l) {
+    for (int i = 0; i < _ranges.size(); ++i) {
+      if (l > _ranges[i])
+        continue;
+      return i ? ((l - _ranges[i - 1]) / (_ranges[i] - _ranges[i - 1]) *
+                      _colormap.col(i) +
+                  (_ranges[i] - l) / (_ranges[i] - _ranges[i - 1]) *
+                      _colormap.col(i + 1))
+               : (l / _ranges[0] * _colormap.col(0) +
+                  (_ranges[0] - l) / _ranges[0] * _colormap.col(1));
+    }
+  }
+
+  std::vector<Eigen::Vector3d> interp(std::vector<double> l_list) {
+    return l_list |
+           ranges::views::transform([&](double l) { return this->interp(l); }) |
+           ranges::to<std::vector>();
+  }
+
+  auto interp_n(int n) {
+    return ranges::views::linear_distribute(double(0.0),
+                                            double(*(_ranges.end() - 1)), n) |
+           ranges::views::transform([&](double l) { return (this->interp(l)).normalized(); }) |
+           ranges::to<std::vector>();
   }
 };

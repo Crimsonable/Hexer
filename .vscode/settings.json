@@ -130,7 +130,8 @@
         "__locale": "cpp",
         "*.rh": "cpp",
         "__hash_table": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "*.ipp": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "cmake.configureSettings": {

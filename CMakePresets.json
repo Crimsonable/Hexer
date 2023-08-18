@@ -20,7 +20,7 @@
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 
                 "CMAKE_CXX_STANDARD": "20",
-                "CMAKE_TOOLCHAIN_FILE": "A:/buildtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+                "CMAKE_TOOLCHAIN_FILE": "D:/devtools/vcpkg/scripts/buildsystems/vcpkg.cmake"
             }
         },
         {

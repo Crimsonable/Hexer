@@ -1,3 +1,4 @@
+#pragma once
 #include "bfgs.h"
 #include "expr.h"
 #include "threadpool.h"

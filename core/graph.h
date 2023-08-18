@@ -105,19 +105,21 @@ public:
       color_label.push_back(val.size() + color_label.back());
     }
 
-    MeshType _mesh;
-    for (uint i = 0; i < mesh.num_verts(); ++i)
-      _mesh.vert_add(cinolib::vec3d(0, 0, 0));
-    for (auto vid : new_index)
-      _mesh.vert(vid.second) = mesh.vert(vid.first);
+    MeshType _mesh = mesh;
+    // for (uint i = 0; i < mesh.num_verts(); ++i)
+    //   _mesh.vert_add(cinolib::vec3d(0, 0, 0));
+    // for (auto vid : new_index)
+    //   _mesh.vert(vid.second) = mesh.vert(vid.first);
 
     for (uint pid = 0; pid < mesh.num_polys(); ++pid) {
       auto pids =
           mesh.adj_p2v(pid) |
           ranges::views::transform([&](uint i) { return new_index[i]; }) |
           ranges::to<std::vector>();
-      _mesh.poly_add(pids);
+      //_mesh.poly_add(pids);
+      _mesh.adj_p2v(pid) = pids;
     }
+    _mesh.update_v_normals();
     return std::make_tuple(std::move(_mesh), std::move(color_label));
   }
 };
