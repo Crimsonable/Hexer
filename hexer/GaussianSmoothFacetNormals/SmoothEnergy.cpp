@@ -178,8 +178,8 @@ int testGSN() {
 
   auto transformer = Hexer::GlobalOrientationAlign()(surface_mesh);
   hexer_timer([&]() { transformer.execute(); }, "Align operation ");
-
   Hexer::FacetNormalDeformOption options;
+
   options.sigma = 1;
   auto deformer = Hexer::GaussianSmoothFacetNormals()(surface_mesh, options);
   Eigen::Matrix3Xd gsn;

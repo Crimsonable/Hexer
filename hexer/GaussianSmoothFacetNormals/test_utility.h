@@ -114,9 +114,9 @@ public:
 };
 
 class ColorMap {
-  Eigen::Matrix3Xd _colormap = Eigen::Matrix3Xd({{0, 8, 57, 198, 222, 239},
-                                                 {0, 69, 174, 243, 251, 255},
-                                                 {16, 99, 156, 99, 123, 190}});
+  Eigen::Matrix3Xd _colormap = Eigen::Matrix3Xd({{235, 249, 118, 46, 235, 236},
+                                                 {56, 252, 252, 34, 57, 51},
+                                                 {35, 87, 122, 243, 183, 51}});
   Eigen::VectorXd _ranges;
 
   void init() {
