@@ -89,60 +89,73 @@ class RerangeVertexByColor
     : public CrtpExprBase<device, RerangeVertexByColor<device, ParamTuple>,
                           ParamTuple> {
 public:
+  // template <typename MeshType>
+  // auto eval(const std::map<int, std::vector<int>> &color_map, MeshType &mesh)
+  // {
+  //   std::map<uint, uint> new_index;
+  //   std::vector<int> color_label;
+
+  //   // color_label starts with 0, each value in this vector repersents the
+  //   total
+  //   // number of verteices of the current color group
+  //   color_label.push_back(0);
+  //   for (const auto &[key, val] : color_map) {
+  //     for (int vid = 0; vid < val.size(); ++vid) {
+  //       uint current_vid = vid + color_label.back();
+  //       new_index[val[vid]] = current_vid;
+  //     }
+  //     color_label.push_back(val.size() + color_label.back());
+  //   }
+
+  //   MeshType _mesh = mesh;
+  //   // for (uint i = 0; i < mesh.num_verts(); ++i)
+  //   //   _mesh.vert_add(cinolib::vec3d(0, 0, 0));
+  //   // for (auto vid : new_index)
+  //   //   _mesh.vert(vid.second) = mesh.vert(vid.first);
+
+  //   for (uint pid = 0; pid < mesh.num_polys(); ++pid) {
+  //     auto pids =
+  //         mesh.adj_p2v(pid) |
+  //         ranges::views::transform([&](uint i) { return new_index[i]; }) |
+  //         ranges::to<std::vector>();
+  //     //_mesh.poly_add(pids);
+  //     _mesh.adj_p2v(pid) = pids;
+  //   }
+  //   _mesh.update_v_normals();
+  //   return std::make_tuple(std::move(_mesh), std::move(color_label));
+  // }
+
   template <typename MeshType>
   auto eval(const std::map<int, std::vector<int>> &color_map, MeshType &mesh) {
-    std::map<uint, uint> new_index;
-    std::vector<int> color_label;
-
-    // color_label starts with 0, each value in this vector repersents the total
-    // number of verteices of the current color group
-    color_label.push_back(0);
-    for (const auto &[key, val] : color_map) {
-      for (int vid = 0; vid < val.size(); ++vid) {
-        uint current_vid = vid + color_label.back();
-        new_index[val[vid]] = current_vid;
-      }
-      color_label.push_back(val.size() + color_label.back());
-    }
-
-    MeshType _mesh = mesh;
-    // for (uint i = 0; i < mesh.num_verts(); ++i)
-    //   _mesh.vert_add(cinolib::vec3d(0, 0, 0));
-    // for (auto vid : new_index)
-    //   _mesh.vert(vid.second) = mesh.vert(vid.first);
-
-    for (uint pid = 0; pid < mesh.num_polys(); ++pid) {
-      auto pids =
-          mesh.adj_p2v(pid) |
-          ranges::views::transform([&](uint i) { return new_index[i]; }) |
-          ranges::to<std::vector>();
-      //_mesh.poly_add(pids);
-      _mesh.adj_p2v(pid) = pids;
-    }
-    _mesh.update_v_normals();
-    return std::make_tuple(std::move(_mesh), std::move(color_label));
-  }
-
-  template <typename MeshType>
-  auto eval0(const std::map<int, std::vector<int>> &color_map, MeshType &mesh) {
     std::vector<cinolib::vec3d> new_coords;
     std::vector<std::vector<uint>> new_polys;
-    std::vector<int> new_vid_map;
+    std::vector<int> old_new_vid_map(mesh.num_verts(), -1);
     new_polys.reserve(mesh.num_polys());
     new_coords.reserve(mesh.num_verts());
-    new_vid_map.reserve(mesh.num_verts());
 
-    for (auto &[i, color_tuple] : color_map | ranges::views::enumerate) {
+    int count_id = 0;
+    for (const auto &[i, color_tuple] : color_map | ranges::views::enumerate) {
       for (auto &vid : color_tuple.second) {
         new_coords.push_back(mesh.vert(vid));
-        new_vid_map.push_back(vid);
+        old_new_vid_map[vid] = count_id;
+        count_id++;
       }
     }
     for (uint pid = 0; pid < mesh.num_polys(); ++pid) {
       new_polys.push_back({});
       for (const auto &vid : mesh.poly_verts_id_const(pid))
-        new_polys.back().push_back()
+        new_polys.back().push_back(old_new_vid_map[vid]);
     }
+
+    std::vector<int> color_label = color_map |
+                                   ranges::views::transform([](const auto &tp) {
+                                     return tp.second.size();
+                                   }) |
+                                   ranges::to<std::vector<int>>();
+
+    MeshType _mesh;
+    _mesh.init(new_coords, new_polys, std::vector<int>{}, std::vector<int>{});
+    return std::make_tuple(std::move(_mesh), std::move(color_label));
   }
 };
 } // namespace Hexer

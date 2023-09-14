@@ -85,7 +85,6 @@ int TestLoopSubdivision() {
 
   cinolib::DrawablePolygonmesh<> dmesh(mesh.vector_verts(),
                                        mesh.vector_polys());
-  dmesh.poly_verts_id_const()
 
   dmesh.init_drawable_stuff();
   dmesh.updateGL();
@@ -117,16 +116,17 @@ int TestGraphColoring() {
       Hexer::GraphColorMap() | Hexer::RerangeVertexByColor()(mesh) |
       Hexer::evalOp();
 
-  int color_count = groups.size() - 1;
+  int color_count = groups.size();
   ColorMap cmap;
   auto colors = cmap.interp_n(color_count);
 
-  for (auto [i, gp] :
-       groups | ranges::views::drop_last(1) | ranges::views::enumerate) {
-    for (int vid = gp; vid < groups[i + 1]; ++vid) {
+  int offset = 0;
+  for (auto [i, gp] : groups | ranges::views::enumerate) {
+    for (int vid = offset; vid < offset + gp; ++vid) {
       _mesh.vert_data(vid).color =
           cinolib::Color(colors[i][0], colors[i][1], colors[i][0]);
     }
+    offset += gp;
   }
 
   // mesh.show_vert_color();
