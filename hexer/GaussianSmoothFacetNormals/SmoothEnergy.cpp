@@ -85,6 +85,7 @@ int TestLoopSubdivision() {
 
   cinolib::DrawablePolygonmesh<> dmesh(mesh.vector_verts(),
                                        mesh.vector_polys());
+  dmesh.poly_verts_id_const()
 
   dmesh.init_drawable_stuff();
   dmesh.updateGL();
@@ -94,34 +95,27 @@ int TestLoopSubdivision() {
 }
 
 int TestGraphColoring() {
-  // cinolib::Polygonmesh<> raw_surface_mesh =
-  //     Hexer::LoopSubdivision()(unitOctahedron(), 3).execute();
   cinolib::DrawablePolyhedralmesh<> mesh(
       "../../../models/test_Step-1_PART-1-MESH-1-1f000.vtu");
-  // projectUnitSphere(raw_surface_mesh);
-  //  cinolib::DrawablePolygonmesh<> mesh(raw_surface_mesh.vector_verts(),
-  //                                              raw_surface_mesh.vector_polys());
 
-  // auto color =
-  //     Hexer::VertexColoring()(mesh,
-  //     Hexer::SortOrder::DescendOrder).execute();
+  // auto color_map =
+  //     Hexer::VertexColoring()(mesh, Hexer::SortOrder::AscendOrder) |
+  //     Hexer::GraphColorMap() | Hexer::evalOp();
+
+  // int color_count = color_map.size();
+  // ColorMap cmap;
+  // auto colors = cmap.interp_n(color_count);
+
+  // for (const auto &[c, idxs] : color_map) {
+  //   for (auto id : idxs)
+  //     mesh.vert_data(id).color =
+  //         cinolib::Color(colors[c][0], colors[c][1], colors[c][0]);
+  // }
 
   auto [_mesh, groups] =
       Hexer::VertexColoring()(mesh, Hexer::SortOrder::AscendOrder) |
       Hexer::GraphColorMap() | Hexer::RerangeVertexByColor()(mesh) |
       Hexer::evalOp();
-
-  // bool check_flag = true;
-  // for (auto vid : ranges::views::iota(0, int(_mesh.num_verts()))) {
-  //   for (auto adj_vid : _mesh.adj_v2v(vid))
-  //     if (color[adj_vid] == color[vid]) {
-  //       check_flag = false;
-  //       break;
-  //     }
-  //   if (!check_flag)
-  //     break;
-  // }
-  // std::cout << "Graph Coloring Check: " << check_flag << std::endl;
 
   int color_count = groups.size() - 1;
   ColorMap cmap;
@@ -131,15 +125,9 @@ int TestGraphColoring() {
        groups | ranges::views::drop_last(1) | ranges::views::enumerate) {
     for (int vid = gp; vid < groups[i + 1]; ++vid) {
       _mesh.vert_data(vid).color =
-          cinolib::Color(colors[i][0], colors[i][1], colors[2][0]);
+          cinolib::Color(colors[i][0], colors[i][1], colors[i][0]);
     }
   }
-
-  // for (auto vid : ranges::views::iota(0, int(_mesh.num_verts()))) {
-  //   auto current_color = double(color[vid]) * color_gap + color_ori;
-  //   _mesh.vert_data(vid).color =
-  //       cinolib::Color(current_color[0], current_color[1], current_color[2]);
-  // }
 
   // mesh.show_vert_color();
   _mesh.show_out_vert_color();
