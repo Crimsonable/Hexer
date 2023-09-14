@@ -97,6 +97,7 @@ int TestGraphColoring() {
   cinolib::DrawablePolyhedralmesh<> mesh(
       "../../../models/test_Step-1_PART-1-MESH-1-1f000.vtu");
 
+  meshInfoQuery(mesh);
   // auto color_map =
   //     Hexer::VertexColoring()(mesh, Hexer::SortOrder::AscendOrder) |
   //     Hexer::GraphColorMap() | Hexer::evalOp();
@@ -124,13 +125,15 @@ int TestGraphColoring() {
   for (auto [i, gp] : groups | ranges::views::enumerate) {
     for (int vid = offset; vid < offset + gp; ++vid) {
       _mesh.vert_data(vid).color =
-          cinolib::Color(colors[i][0], colors[i][1], colors[i][0]);
+          cinolib::Color(colors[i][0], colors[i][1], colors[i][2]);
     }
     offset += gp;
   }
 
   // mesh.show_vert_color();
   _mesh.show_out_vert_color();
+  _mesh.show_in_vert_color();
+  _mesh.show_in_wireframe(true);
   _mesh.show_mesh_points();
   _mesh.updateGL();
   cinolib::GLcanvas gui;

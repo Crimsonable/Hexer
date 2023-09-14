@@ -95,6 +95,27 @@ SphereGen(int n, const std::vector<Expblas::vec3d> &vertex,
   return mesh;
 }
 
+template <typename M, typename V, typename E, typename F, typename P>
+void meshInfoQuery(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh) {
+  int count = 0;
+  for (int vid = 0; vid < mesh.num_verts(); ++vid)
+    if (!mesh.vert_is_on_srf(vid))
+      count++;
+  std::cout << "Verts inside: " << count << std::endl;
+
+  count = 0;
+  for (int fid = 0; fid < mesh.num_faces(); ++fid)
+    if (!mesh.face_is_on_srf(fid))
+      count++;
+  std::cout << "Faces inside: " << count << std::endl;
+
+  count = 0;
+  for (int pid = 0; pid < mesh.num_polys(); ++pid)
+    if (!mesh.poly_is_on_surf(pid))
+      count++;
+  std::cout << "Polys inside: " << count << std::endl;
+}
+
 template <typename Mesh> class NewCanvans : public cinolib::GLcanvas {
   int count = 0;
 
@@ -155,7 +176,8 @@ public:
   auto interp_n(int n) {
     return ranges::views::linear_distribute(double(0.0),
                                             double(*(_ranges.end() - 1)), n) |
-           ranges::views::transform([&](double l) { return (this->interp(l)).normalized(); }) |
+           ranges::views::transform(
+               [&](double l) { return (this->interp(l)).normalized(); }) |
            ranges::to<std::vector>();
   }
 };
