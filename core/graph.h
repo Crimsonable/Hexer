@@ -122,5 +122,27 @@ public:
     _mesh.update_v_normals();
     return std::make_tuple(std::move(_mesh), std::move(color_label));
   }
+
+  template <typename MeshType>
+  auto eval0(const std::map<int, std::vector<int>> &color_map, MeshType &mesh) {
+    std::vector<cinolib::vec3d> new_coords;
+    std::vector<std::vector<uint>> new_polys;
+    std::vector<int> new_vid_map;
+    new_polys.reserve(mesh.num_polys());
+    new_coords.reserve(mesh.num_verts());
+    new_vid_map.reserve(mesh.num_verts());
+
+    for (auto &[i, color_tuple] : color_map | ranges::views::enumerate) {
+      for (auto &vid : color_tuple.second) {
+        new_coords.push_back(mesh.vert(vid));
+        new_vid_map.push_back(vid);
+      }
+    }
+    for (uint pid = 0; pid < mesh.num_polys(); ++pid) {
+      new_polys.push_back({});
+      for (const auto &vid : mesh.poly_verts_id_const(pid))
+        new_polys.back().push_back()
+    }
+  }
 };
 } // namespace Hexer
