@@ -194,10 +194,12 @@ int testPolyCubeOptimization() {
   d_options.s = 1e-5;
   Hexer::FacetNormalDeformOption f_options;
 
-  hexer_timer(
-      [&]() { Hexer::PolyCubeGen()(mesh, d_options, f_options, 1).execute(); },
-      "PolyCube Gen ");
+  // hexer_timer(
+  //     [&]() { Hexer::PolyCubeGen()(mesh, d_options, f_options, 1).execute();
+  //     }, "PolyCube Gen ");
 
+  mesh.show_out_vert_color();
+  mesh.show_mesh_points();
   mesh.updateGL();
   cinolib::GLcanvas gui;
   gui.push(&mesh);
@@ -240,12 +242,12 @@ auto debugDeformation() {
 }
 
 int main() {
-  // testPolyCubeOptimization();
+  testPolyCubeOptimization();
   //    test_adj_v2p();
   //    TestLoopSubdivision();
   //    debugDeformation();
   //  debugDeformation();
-  TestGraphColoring();
+  // TestGraphColoring();
   // testMeshCopy();
   return 1;
 }

@@ -10,8 +10,8 @@ public:
   explicit GaussSeidel(const std::vector<int> &label, Eigen::VectorXd &buffer,
                        BFGSOptions options, Args &&...args)
       : _ranges(label) {
-    // to be cleared, 'label' is an array starts with 0 and ends with the total
-    // number of vertices in the mesh
+    // to be cleared, 'label' is an array which contains the number of vertices
+    // of each color in graph
     _functors.reserve(label.size());
     _solvers_list.reserve(label.size());
 

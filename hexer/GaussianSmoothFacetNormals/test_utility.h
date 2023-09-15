@@ -114,6 +114,19 @@ void meshInfoQuery(const cinolib::AbstractPolyhedralMesh<M, V, E, F, P> &mesh) {
     if (!mesh.poly_is_on_surf(pid))
       count++;
   std::cout << "Polys inside: " << count << std::endl;
+
+  count = 0;
+  uint f;
+  for (int fid = 0; fid < mesh.num_faces(); ++fid)
+    if (!mesh.face_is_visible(fid, f))
+      count++;
+  std::cout << "Face visible: " << count << std::endl;
+
+  count = 0;
+  for (int pid = 0; pid < mesh.num_polys(); ++pid)
+    if (mesh.poly_data(pid).flags[2])
+      count++;
+  std::cout << "Hiden polys: " << count << std::endl;
 }
 
 template <typename Mesh> class NewCanvans : public cinolib::GLcanvas {
